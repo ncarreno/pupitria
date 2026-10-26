@@ -17,6 +17,7 @@
   - **Comparación** (`/admin/ia/pruebas/{caso}`): la última ejecución de cada proveedor y modelo como A, B, C… El orden se baraja de forma estable para cada persona. Se ven con los mismos componentes que la docente, con duración, tokens e ids descartados. **A ciegas** hasta que quien mira ha valorado todas; después se ven los proveedores y las valoraciones de todos.
   - **Casos** (`IaCasosSeeder`): "Exploradores del planeta", "Artes escénicas (centro)" y dos fichas **provisionales** hasta que la beta tester elija las suyas.
   - Tests en `BateriaPruebasTest`.
+- **Extra: cuentas `/admin/cuentas`** (solo administrador; menú "Cuentas"). Lista con búsqueda: nombre, email, fecha de registro, si el email está verificado, recuentos de clases, proyectos y fichas (nunca su contenido) y permisos. Desde ahí se hace o se deja de ser administrador (salvo uno mismo), se da o se quita el permiso de valorar y se marca un email como verificado si no le llega el correo. Tests en `AdminCuentasTest`.
 - **Antes de empezar:** el proyecto ya está en git (`main` en GitHub) y se han borrado los `.tgz` de transferencia de `storage/app/private/`.
 - Tests en `AdminIATest` y `ClienteIATest`.
 

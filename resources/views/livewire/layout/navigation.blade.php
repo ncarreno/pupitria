@@ -46,8 +46,11 @@ new class extends Component
                         Currículo
                     </x-nav-link>
                     @if (auth()->user()->esAdministrador())
-                        <x-nav-link :href="route('admin.ia')" :active="request()->routeIs('admin.*')" wire:navigate>
+                        <x-nav-link :href="route('admin.ia')" :active="request()->routeIs('admin.ia*', 'admin.pruebas*')" wire:navigate>
                             IA
+                        </x-nav-link>
+                        <x-nav-link :href="route('admin.cuentas')" :active="request()->routeIs('admin.cuentas')" wire:navigate>
+                            Cuentas
                         </x-nav-link>
                     @elseif (auth()->user()->puedeValorarPruebas())
                         <x-nav-link :href="route('admin.pruebas')" :active="request()->routeIs('admin.pruebas*')" wire:navigate>
@@ -118,8 +121,11 @@ new class extends Component
                 Currículo
             </x-responsive-nav-link>
             @if (auth()->user()->esAdministrador())
-                <x-responsive-nav-link :href="route('admin.ia')" :active="request()->routeIs('admin.*')" wire:navigate>
+                <x-responsive-nav-link :href="route('admin.ia')" :active="request()->routeIs('admin.ia*', 'admin.pruebas*')" wire:navigate>
                     IA
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.cuentas')" :active="request()->routeIs('admin.cuentas')" wire:navigate>
+                    Cuentas
                 </x-responsive-nav-link>
             @elseif (auth()->user()->puedeValorarPruebas())
                 <x-responsive-nav-link :href="route('admin.pruebas')" :active="request()->routeIs('admin.pruebas*')" wire:navigate>
