@@ -24,4 +24,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Volt::route('curriculo', 'pages.curriculo')->name('curriculo');
 });
 
+Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->group(function () {
+    Volt::route('ia', 'pages.admin.ia')->name('admin.ia');
+});
+
 require __DIR__.'/auth.php';

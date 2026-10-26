@@ -31,6 +31,7 @@ class ClienteIA
      *
      * @param  string  $tarea  proyecto, ajuste, ficha…
      * @param  Closure  $esquema  fn (JsonSchema $schema): array — esquema del Laravel AI SDK
+     * @param  IaConfiguracion|null  $soloEsta  usa solo esta fila, sin respaldo (botón "Probar" del panel)
      * @return array{datos: array, generacion: Generacion}
      */
     public function generarEstructurado(
@@ -39,8 +40,9 @@ class ClienteIA
         string $peticion,
         Closure $esquema,
         ?User $usuario = null,
+        ?IaConfiguracion $soloEsta = null,
     ): array {
-        $configuracion = IaConfiguracion::paraTarea($tarea)->get();
+        $configuracion = $soloEsta ? collect([$soloEsta]) : IaConfiguracion::paraTarea($tarea)->get();
 
         if ($configuracion->isEmpty()) {
             throw new RuntimeException("No hay ningún proveedor de IA activo para la tarea «{$tarea}».");
@@ -91,6 +93,7 @@ class ClienteIA
      * Nunca se le pide texto dentro de la imagen: los textos van siempre en HTML editable.
      *
      * @param  'square'|'portrait'|'landscape'  $formato
+     * @param  IaConfiguracion|null  $soloEsta  usa solo esta fila, sin respaldo (botón "Probar" del panel)
      * @return array{ruta: string, url: string, generacion: Generacion}
      */
     public function generarImagen(
@@ -98,8 +101,9 @@ class ClienteIA
         string $formato = 'square',
         ?User $usuario = null,
         string $tarea = 'imagen',
+        ?IaConfiguracion $soloEsta = null,
     ): array {
-        $configuracion = IaConfiguracion::paraTarea($tarea)->get();
+        $configuracion = $soloEsta ? collect([$soloEsta]) : IaConfiguracion::paraTarea($tarea)->get();
 
         if ($configuracion->isEmpty()) {
             throw new RuntimeException("No hay ningún proveedor de imágenes activo para la tarea «{$tarea}».");

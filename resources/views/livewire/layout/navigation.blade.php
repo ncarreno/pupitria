@@ -45,6 +45,11 @@ new class extends Component
                     <x-nav-link :href="route('curriculo')" :active="request()->routeIs('curriculo')" wire:navigate>
                         Currículo
                     </x-nav-link>
+                    @if (auth()->user()->esAdministrador())
+                        <x-nav-link :href="route('admin.ia')" :active="request()->routeIs('admin.*')" wire:navigate>
+                            IA
+                        </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -108,6 +113,11 @@ new class extends Component
             <x-responsive-nav-link :href="route('curriculo')" :active="request()->routeIs('curriculo')" wire:navigate>
                 Currículo
             </x-responsive-nav-link>
+            @if (auth()->user()->esAdministrador())
+                <x-responsive-nav-link :href="route('admin.ia')" :active="request()->routeIs('admin.*')" wire:navigate>
+                    IA
+                </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->

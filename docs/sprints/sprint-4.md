@@ -1,12 +1,20 @@
 # Sprint 4: administración de IA y batería de pruebas comparativa
 
-*Plan · Sin empezar · Diseño en [../arquitectura.md](../arquitectura.md) · Anterior: [sprint 3](sprint-3.md)*
+*En curso · Diseño en [../arquitectura.md](../arquitectura.md) · Anterior: [sprint 3](sprint-3.md)*
+
+## Hecho hasta ahora (26 oct)
+- **A. Panel `/admin/ia`** (middleware `admin` y comprobación en cada acción de Livewire). Una tarjeta por tarea con sus filas: añadir proveedor, subir y bajar (el primero activo es el principal), modelo y tiempo máximo, activar y desactivar, quitar y **Probar**. Marca "Sin clave" si falta en `.env`. En ilustraciones solo deja OpenAI, Gemini y xAI. Enlace "IA" en el menú solo para administradores.
+  - No deja una tarea sin proveedor activo.
+  - El tiempo máximo tiene un tope por tarea (`IaConfiguracion::TIMEOUT_MAXIMO`) para que quepa en el timeout del job.
+  - `ClienteIA::generarEstructurado()` y `generarImagen()` aceptan `soloEsta` (una fila, sin respaldo) para el botón Probar. Las pruebas se registran como tarea `prueba`.
+- **C. Respaldo:** test que confirma que, si el principal limita la tasa, responde el siguiente y `generaciones.respaldo = true`.
+- **Antes de empezar:** el proyecto ya está en git (`main` en GitHub).
+- Tests en `AdminIATest` y `ClienteIATest`.
 
 ## Objetivo
 Que Nacho pueda **cambiar proveedor y modelo por tarea sin tocar la base de datos**, ver cuánto y cómo se usa la IA y, antes de cambiar de proveedor, **comparar resultados con casos reales** lado a lado.
 
 ## Antes de empezar
-- `git init` y primer commit (el proyecto no está en git).
 - Borrar los archivos de transferencia de `storage/app/private/` (`snapshot*.tgz`, `sprint*.tgz`, `imagenes.tgz`).
 - Recoger los comentarios de la beta tester sobre proyectos y fichas (sprints 2 y 3). Definen los casos de la batería y qué es un "buen resultado".
 - Poner `GEMINI_API_KEY` (y la que haga falta) en `.env` si se va a comparar con Gemini.

@@ -3,12 +3,14 @@
 namespace Tests\Feature;
 
 use App\Models\Generacion;
+use App\Models\IaConfiguracion;
 use App\Models\User;
 use App\Services\IA\ClienteIA;
 use Database\Seeders\IaConfiguracionSeeder;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
+use Laravel\Ai\Exceptions\RateLimitedException;
 use Laravel\Ai\StructuredAnonymousAgent;
 use RuntimeException;
 use Tests\TestCase;
@@ -32,6 +34,22 @@ class ClienteIATest extends TestCase
         $this->assertSame('Ríos de Asturias', $r['datos']['titulo']);
         $this->assertSame('completada', $r['generacion']->estado);
         $this->assertSame(1, Generacion::count());
+    }
+
+    public function test_si_el_principal_falla_responde_el_respaldo_y_queda_registrado(): void
+    {
+        $this->seed(IaConfiguracionSeeder::class);
+        IaConfiguracion::create(['tarea' => 'prueba', 'proveedor' => 'openai', 'orden' => 2, 'timeout' => 60, 'activo' => true]);
+        StructuredAnonymousAgent::fake(fn ($prompt, $adjuntos, $proveedor) => $proveedor->name() === 'anthropic'
+            ? throw RateLimitedException::forProvider('anthropic')
+            : ['titulo' => 'Ríos de Asturias']);
+
+        $r = app(ClienteIA::class)->generarEstructurado('prueba', 'x', 'y', fn (JsonSchema $s) => ['titulo' => $s->string()->required()]);
+
+        $this->assertSame('Ríos de Asturias', $r['datos']['titulo']);
+        $this->assertSame('openai', $r['generacion']->proveedor);
+        $this->assertTrue($r['generacion']->respaldo);
+        $this->assertSame('completada', $r['generacion']->estado);
     }
 
     public function test_falla_si_no_hay_proveedor_para_la_tarea(): void
