@@ -9,6 +9,14 @@
   - `ClienteIA::generarEstructurado()` y `generarImagen()` aceptan `soloEsta` (una fila, sin respaldo) para el botón Probar. Las pruebas se registran como tarea `prueba`.
 - **B. Uso `/admin/ia/uso`** (solo tokens; el coste en euros espera la decisión sobre la tabla de precios). Periodo de 7 o 30 días. Por tarea: generaciones, % fallidas, % respondidas por el respaldo y sin terminar. Desglose por proveedor y modelo de las completadas: duración media, tokens de entrada, salida y caché, e ids descartados. Debajo, las 25 últimas generaciones con su error. Una generación fallida no tiene proveedor (fallaron todos los de la cadena), así que las fallidas se cuentan por tarea.
 - **C. Respaldo:** test que confirma que, si el principal limita la tasa, responde el siguiente y `generaciones.respaldo = true`.
+- **D. Batería de pruebas** (`/admin/ia/pruebas`):
+  - Tablas `ia_casos`, `ia_ejecuciones` e `ia_valoraciones`. Cambio sobre el plan: la valoración va en su propia tabla, una por persona y ejecución, porque valoran Nacho y la beta tester.
+  - **Permiso `users.puede_valorar`** (comando `usuarios:valorar {email}`, Gate `valorar-pruebas`): ve y valora las pruebas sin ser administradora. Lanzar, configurar y ver el uso siguen siendo solo del administrador. Menú "Valorar pruebas" para ella.
+  - **Lanzar:** `ia:bateria {--proveedores=anthropic,openai,gemini} {--caso=}` (admite `proveedor:modelo`) o el botón del listado. Un job `EjecutarCasoIA` por proveedor y caso. Sin modelo explícito, usa el de la configuración de la tarea o el del proveedor.
+  - **Generadores reutilizados sin guardar nada:** `BateriaPruebas` monta un `Proyecto` o una `Ficha` sin guardar (la clase va como relación en memoria). Los generadores aceptan `soloEsta` para forzar el proveedor, y la llamada se registra como tarea `bateria`, que aparece aparte en el uso.
+  - **Comparación** (`/admin/ia/pruebas/{caso}`): la última ejecución de cada proveedor y modelo como A, B, C… El orden se baraja de forma estable para cada persona. Se ven con los mismos componentes que la docente, con duración, tokens e ids descartados. **A ciegas** hasta que quien mira ha valorado todas; después se ven los proveedores y las valoraciones de todos.
+  - **Casos** (`IaCasosSeeder`): "Exploradores del planeta", "Artes escénicas (centro)" y dos fichas **provisionales** hasta que la beta tester elija las suyas.
+  - Tests en `BateriaPruebasTest`.
 - **Antes de empezar:** el proyecto ya está en git (`main` en GitHub) y se han borrado los `.tgz` de transferencia de `storage/app/private/`.
 - Tests en `AdminIATest` y `ClienteIATest`.
 
@@ -32,7 +40,9 @@ Que Nacho pueda **cambiar proveedor y modelo por tarea sin tocar la base de dato
 ## B. Uso y costes (`/admin/ia/uso`)
 - Resumen por tarea y proveedor en un periodo (7 días, 30 días): generaciones, % fallidas, % respondidas por el respaldo, duración media, tokens de entrada, salida y caché, ids descartados.
 - Últimas generaciones con su error si fallaron.
-- **Coste estimado** a partir de una tabla de precios por modelo mantenida a mano (p. ej. `config/ia-precios.php`), marcado como estimación.
+- **Coste estimado: pospuesto** (decisión de Nacho, 26 oct). Se puede añadir cuando se quiera: cada generación ya guarda proveedor, modelo y tokens, así que el coste se calculará también para el historial. Al hacerlo:
+  - Tabla de precios por modelo con la **fecha desde la que vale** cada precio, para que el historial use el precio de su momento.
+  - Hoy solo se guardan los tokens **leídos** de caché, no los **escritos** (Anthropic los cobra más caros). Sin ese dato el coste sale algo por debajo del real; guardarlo pronto da más historial exacto.
 
 ## C. Respaldo
 - `ClienteIA` ya pasa la lista de proveedores al SDK. Añadir un test que confirme que, si el principal falla, responde el siguiente y `generaciones.respaldo = true`.
@@ -53,9 +63,14 @@ Que Nacho pueda **cambiar proveedor y modelo por tarea sin tocar la base de dato
 - La batería crea una ejecución por proveedor y caso, guarda el resultado limpio (sin ids inventados) y no crea proyectos ni fichas.
 - La valoración se guarda y el modo a ciegas no muestra el proveedor.
 
-## Preguntas abiertas
-- ¿Con qué proveedores y modelos se compara de entrada? (Claude, ChatGPT y Gemini como mínimo).
-- ¿La beta tester valora las comparaciones? Si sí, hace falta un acceso para ella (enlace firmado o permiso de solo valoración) sin darle el rol de administrador.
-- ¿Precios por modelo a mano o se dejan los costes solo en tokens por ahora?
+## Decidido (26 oct)
+- Se compara con Claude, ChatGPT y Gemini (por defecto en `ia:bateria`).
+- Valoran Nacho y la beta tester, nadie más: permiso `puede_valorar`, no rol de administrador.
+- Coste en euros pospuesto (ver B).
+
+## Pendiente de Nacho
+- `GEMINI_API_KEY` en `.env` (local y servidor); sin ella, las ejecuciones con Gemini salen como fallidas.
+- En el servidor: `php artisan migrate`, `php artisan db:seed --class=IaCasosSeeder` y `php artisan usuarios:valorar {email de la beta tester}`.
+- Que la beta tester elija sus 3 o 4 fichas para sustituir las dos provisionales del seeder.
 
 ## Siguiente: sprint 5 (exportación Word y PDF, estilos visuales)

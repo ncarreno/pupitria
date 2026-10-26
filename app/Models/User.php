@@ -30,6 +30,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'preferencias' => 'array',
+            'puede_valorar' => 'boolean',
         ];
     }
 
@@ -59,5 +60,14 @@ class User extends Authenticatable implements MustVerifyEmail
     public function esAdministrador(): bool
     {
         return $this->rol === 'admin';
+    }
+
+    /**
+     * Ve y valora la batería de pruebas: el administrador y quien tenga el permiso (la beta tester).
+     * Lanzar pruebas sigue siendo solo del administrador, porque gasta saldo.
+     */
+    public function puedeValorarPruebas(): bool
+    {
+        return $this->esAdministrador() || $this->puede_valorar;
     }
 }

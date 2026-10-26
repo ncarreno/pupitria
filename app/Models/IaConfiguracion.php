@@ -64,6 +64,14 @@ class IaConfiguracion extends Model
         return $tarea === 'imagen' ? self::PROVEEDORES_IMAGEN : self::PROVEEDORES_TEXTO;
     }
 
+    /**
+     * Nombre de una tarea del registro de generaciones: las configurables y la batería de pruebas.
+     */
+    public static function nombreTarea(string $tarea): string
+    {
+        return (self::TAREAS + ['bateria' => 'Batería de pruebas'])[$tarea] ?? $tarea;
+    }
+
     public static function timeoutMaximo(string $tarea): int
     {
         return self::TIMEOUT_MAXIMO[$tarea] ?? 120;

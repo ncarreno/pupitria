@@ -29,4 +29,12 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->group(functio
     Volt::route('ia/uso', 'pages.admin.ia-uso')->name('admin.ia.uso');
 });
 
+/**
+ * La batería de pruebas la ven y valoran el administrador y quien tenga el permiso (la beta tester).
+ */
+Route::middleware(['auth', 'verified', 'can:valorar-pruebas'])->prefix('admin')->group(function () {
+    Volt::route('ia/pruebas', 'pages.admin.pruebas.index')->name('admin.pruebas');
+    Volt::route('ia/pruebas/{caso}', 'pages.admin.pruebas.ver')->name('admin.pruebas.ver');
+});
+
 require __DIR__.'/auth.php';

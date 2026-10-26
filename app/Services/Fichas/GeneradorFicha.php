@@ -6,6 +6,7 @@ use App\Models\Area;
 use App\Models\Criterio;
 use App\Models\Ficha;
 use App\Models\Generacion;
+use App\Models\IaConfiguracion;
 use App\Services\Curriculo\CatalogoCurriculo;
 use App\Services\IA\ClienteIA;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -24,9 +25,10 @@ class GeneradorFicha
     ) {}
 
     /**
+     * @param  IaConfiguracion|null  $soloEsta  para la batería de pruebas: fuerza ese proveedor y registra la llamada como `bateria`
      * @return array{contenido: array<string, mixed>, titulo: string, criterios: array<string>, ilustracion: string, descartados: int, generacion: Generacion}
      */
-    public function generar(Ficha $ficha): array
+    public function generar(Ficha $ficha, ?IaConfiguracion $soloEsta = null): array
     {
         $ciclo = CatalogoCurriculo::cicloDe($ficha->curso);
         $area = Area::where('codigo', $ficha->area)->firstOrFail();
@@ -47,11 +49,12 @@ class GeneradorFicha
         ])->render();
 
         $resultado = $this->ia->generarEstructurado(
-            tarea: 'ficha',
+            tarea: $soloEsta ? 'bateria' : 'ficha',
             instrucciones: view('prompts.ficha-instrucciones')->render(),
             peticion: $peticion,
             esquema: fn (JsonSchema $schema) => $this->esquema($schema),
             usuario: $ficha->user,
+            soloEsta: $soloEsta,
         );
 
         $raw = $resultado['datos'];

@@ -4,6 +4,7 @@ namespace App\Services\Proyectos;
 
 use App\Models\Area;
 use App\Models\Generacion;
+use App\Models\IaConfiguracion;
 use App\Models\Proyecto;
 use App\Services\Curriculo\CatalogoCurriculo;
 use App\Services\IA\ClienteIA;
@@ -21,9 +22,10 @@ class GeneradorProyecto
     ) {}
 
     /**
+     * @param  IaConfiguracion|null  $soloEsta  para la batería de pruebas: fuerza ese proveedor y registra la llamada como `bateria`
      * @return array{contenido: array<string, mixed>, descartados: int, generacion: Generacion}
      */
-    public function generar(Proyecto $proyecto, ?string $ajuste = null): array
+    public function generar(Proyecto $proyecto, ?string $ajuste = null, ?IaConfiguracion $soloEsta = null): array
     {
         $ciclo = CatalogoCurriculo::cicloDe($proyecto->curso);
         $clase = $proyecto->clase;
@@ -48,11 +50,12 @@ class GeneradorProyecto
         ])->render();
 
         $resultado = $this->ia->generarEstructurado(
-            tarea: $ajuste ? 'ajuste' : 'proyecto',
+            tarea: $soloEsta ? 'bateria' : ($ajuste ? 'ajuste' : 'proyecto'),
             instrucciones: view('prompts.proyecto-instrucciones')->render(),
             peticion: $peticion,
             esquema: fn (JsonSchema $schema) => $this->esquema($schema),
             usuario: $proyecto->user,
+            soloEsta: $soloEsta,
         );
 
         [$contenido, $descartados] = $this->limpiar($resultado['datos'], $proyecto, $ciclo);

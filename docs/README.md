@@ -19,7 +19,7 @@ App para que docentes de Primaria (piloto en Asturias) generen proyectos y ficha
 - Laravel 13, Livewire 3 + Volt, Alpine, Tailwind, `laravel/ai`. PHP 8.4 con Laravel Herd, MySQL. URL `http://app-colegios.test`.
 - `composer run dev` arranca Vite, el worker de la cola, los logs (`pail`) y `artisan serve` (sobra con Herd). **Sin la cola no se genera nada** (proyectos y fichas van en jobs).
 - `php artisan test` antes de dar algo por terminado.
-- Comandos propios: `curriculo:importar`, `usuarios:admin {email}`, `ia:probar`, `ia:probar-imagen`.
+- Comandos propios: `curriculo:importar`, `usuarios:admin {email}`, `usuarios:valorar {email}` (permiso para valorar la batería de pruebas), `ia:probar`, `ia:probar-imagen`, `ia:bateria`.
 - Claves en `.env`: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`.
 
 ## Reglas para trabajar en el código

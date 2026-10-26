@@ -50,4 +50,12 @@ class UserFactory extends Factory
     {
         return $this->afterCreating(fn (User $user) => $user->forceFill(['rol' => 'admin'])->save());
     }
+
+    /**
+     * Docente con permiso para valorar la batería de pruebas (la beta tester).
+     */
+    public function valoradora(): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->forceFill(['puede_valorar' => true])->save());
+    }
 }

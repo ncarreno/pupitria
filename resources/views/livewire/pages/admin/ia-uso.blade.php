@@ -105,7 +105,10 @@ new #[Layout('layouts.app')] class extends Component
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">Uso de la IA</h2>
                 <p class="text-sm text-gray-500 mt-1">Sacado del registro de generaciones. Por ahora en tokens; sin coste en euros.</p>
             </div>
-            <a href="{{ route('admin.ia') }}" wire:navigate class="text-sm text-indigo-700 hover:underline">Configuración</a>
+            <div class="flex gap-4 text-sm">
+                <a href="{{ route('admin.ia') }}" wire:navigate class="text-indigo-700 hover:underline">Configuración</a>
+                <a href="{{ route('admin.pruebas') }}" wire:navigate class="text-indigo-700 hover:underline">Batería de pruebas</a>
+            </div>
         </div>
     </x-slot>
 
@@ -126,7 +129,7 @@ new #[Layout('layouts.app')] class extends Component
                 @php($terminadas = $r['total'] - $r['sin_terminar'])
                 <section wire:key="uso-{{ $tarea }}" class="bg-white shadow-sm sm:rounded-lg p-5 space-y-3">
                     <div class="flex flex-wrap items-baseline justify-between gap-2">
-                        <h3 class="font-semibold text-gray-900">{{ \App\Models\IaConfiguracion::TAREAS[$tarea] ?? $tarea }}</h3>
+                        <h3 class="font-semibold text-gray-900">{{ \App\Models\IaConfiguracion::nombreTarea($tarea) }}</h3>
                         <p class="text-sm text-gray-600">
                             {{ $this->numero($r['total']) }} generaciones
                             · <span @class(['text-red-700 font-medium' => $r['fallidas'] > 0])>{{ $this->porcentaje($r['fallidas'], $terminadas) }} fallidas</span>
@@ -186,7 +189,7 @@ new #[Layout('layouts.app')] class extends Component
                             @forelse ($this->ultimas as $g)
                                 <tr wire:key="g-{{ $g->id }}" class="align-top">
                                     <td class="py-2 pe-4 whitespace-nowrap text-gray-600">{{ $g->created_at->format('d/m H:i') }}</td>
-                                    <td class="py-2 pe-4">{{ \App\Models\IaConfiguracion::TAREAS[$g->tarea] ?? $g->tarea }}</td>
+                                    <td class="py-2 pe-4">{{ \App\Models\IaConfiguracion::nombreTarea($g->tarea) }}</td>
                                     <td class="py-2 pe-4">{{ $g->proveedor ?? '—' }} <span class="text-gray-500">{{ $g->modelo }}</span>@if ($g->respaldo) <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">respaldo</span>@endif</td>
                                     <td class="py-2 pe-4">
                                         <span @class(['text-red-700' => $g->estado === 'fallida', 'text-gray-500' => $g->estado === 'pendiente'])>{{ $g->estado }}</span>

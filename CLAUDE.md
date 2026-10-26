@@ -13,7 +13,7 @@ App Laravel para que docentes de Primaria (piloto en Asturias) generen proyectos
 - `php artisan test --compact` (todo) · `php artisan test --compact tests/Feature/FichasTest.php --filter=nombreDelTest` (uno).
 - `vendor/bin/pint --dirty --format agent` tras tocar PHP.
 - `php artisan curriculo:importar` carga `database/data/curriculo-primaria-asturias.json` (lo que ya no está en el JSON solo se avisa; `--borrar-sobrantes` lo borra); `php artisan db:seed --class=IaConfiguracionSeeder` crea la configuración de IA por tarea.
-- `php artisan ia:probar` / `ia:probar-imagen` hacen llamadas reales (gastan saldo de API).
+- `php artisan ia:probar` / `ia:probar-imagen` / `ia:bateria` hacen llamadas reales (gastan saldo de API). Los casos de la batería se cargan con `db:seed --class=IaCasosSeeder`; `usuarios:valorar {email}` da el permiso de valorarlos.
 - Es un repositorio git (rama `main`).
 - Las docentes tienen que verificar su email: las páginas de la app usan el middleware `verified`. En local `MAIL_MAILER=log`, así que el enlace sale en `storage/logs/laravel.log`.
 

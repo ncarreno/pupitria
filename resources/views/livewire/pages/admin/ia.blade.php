@@ -213,7 +213,10 @@ new #[Layout('layouts.app')] class extends Component
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">Configuración de la IA</h2>
                 <p class="text-sm text-gray-500 mt-1">El primer proveedor activo de cada tarea es el principal. Si falla o limita la tasa, responde el siguiente. Los cambios se aplican en la siguiente generación.</p>
             </div>
-            <a href="{{ route('admin.ia.uso') }}" wire:navigate class="text-sm text-indigo-700 hover:underline">Uso de la IA</a>
+            <div class="flex gap-4 text-sm">
+                <a href="{{ route('admin.ia.uso') }}" wire:navigate class="text-indigo-700 hover:underline">Uso de la IA</a>
+                <a href="{{ route('admin.pruebas') }}" wire:navigate class="text-indigo-700 hover:underline">Batería de pruebas</a>
+            </div>
         </div>
     </x-slot>
 

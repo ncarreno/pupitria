@@ -49,6 +49,10 @@ new class extends Component
                         <x-nav-link :href="route('admin.ia')" :active="request()->routeIs('admin.*')" wire:navigate>
                             IA
                         </x-nav-link>
+                    @elseif (auth()->user()->puedeValorarPruebas())
+                        <x-nav-link :href="route('admin.pruebas')" :active="request()->routeIs('admin.pruebas*')" wire:navigate>
+                            Valorar pruebas
+                        </x-nav-link>
                     @endif
                 </div>
             </div>
@@ -116,6 +120,10 @@ new class extends Component
             @if (auth()->user()->esAdministrador())
                 <x-responsive-nav-link :href="route('admin.ia')" :active="request()->routeIs('admin.*')" wire:navigate>
                     IA
+                </x-responsive-nav-link>
+            @elseif (auth()->user()->puedeValorarPruebas())
+                <x-responsive-nav-link :href="route('admin.pruebas')" :active="request()->routeIs('admin.pruebas*')" wire:navigate>
+                    Valorar pruebas
                 </x-responsive-nav-link>
             @endif
         </div>
