@@ -54,6 +54,17 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_con_la_contrasena_mal_el_aviso_sale_en_espanol(): void
+    {
+        $user = User::factory()->create();
+
+        Volt::test('pages.auth.login')
+            ->set('form.email', $user->email)
+            ->set('form.password', 'otra-contrasena')
+            ->call('login')
+            ->assertHasErrors(['form.email' => 'El email o la contraseña no son correctos.']);
+    }
+
     public function test_navigation_menu_can_be_rendered(): void
     {
         $user = User::factory()->create();

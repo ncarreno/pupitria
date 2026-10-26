@@ -69,7 +69,7 @@ class Proyecto extends Model
     {
         $this->forceFill([
             'contenido' => $contenido,
-            'titulo' => (string) ($contenido['titulo'] ?? $this->titulo),
+            'titulo' => str((string) ($contenido['titulo'] ?? $this->titulo))->limit(255, '')->toString(),
             'estado' => 'listo',
             'error' => null,
         ])->save();

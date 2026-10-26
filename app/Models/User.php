@@ -2,18 +2,19 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 #[Fillable(['name', 'email', 'password', 'preferencias'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
@@ -30,6 +31,14 @@ class User extends Authenticatable
             'password' => 'hashed',
             'preferencias' => 'array',
         ];
+    }
+
+    /**
+     * Las fichas se borran en cascada en la base de datos, sin eventos, así que sus imágenes se borran aquí.
+     */
+    protected static function booted(): void
+    {
+        static::deleted(fn (User $user) => Storage::disk('public')->deleteDirectory('imagenes/'.$user->id));
     }
 
     public function clases(): HasMany

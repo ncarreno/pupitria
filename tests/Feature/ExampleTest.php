@@ -16,4 +16,13 @@ class ExampleTest extends TestCase
 
         $response->assertStatus(200);
     }
+
+    public function test_la_portada_esta_en_espanol_y_sin_contenido_de_laravel(): void
+    {
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('Crear cuenta')
+            ->assertSee('Entrar')
+            ->assertDontSee('Laracasts');
+    }
 }

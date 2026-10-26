@@ -48,7 +48,11 @@ new #[Layout('layouts.app')] class extends Component
         $this->authorize('update', $this->ficha);
         $this->skipRender();
 
-        $valor = str(trim($valor))->limit(2000, '')->toString();
+        if ($this->ficha->estaGenerando()) {
+            return;
+        }
+
+        $valor = str(trim($valor))->limit($ruta === 'titulo' ? 255 : 2000, '')->toString();
 
         if ($ruta === 'titulo') {
             $this->ficha->forceFill(['titulo' => $valor])->save();
@@ -166,7 +170,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
                 </div>
 
-                @if ($ficha->prompt_imagen && ! $ficha->estaGenerando() && ($ficha->ilustracionPorPrompt() || ! $ficha->imagen))
+                @if ($ficha->prompt_imagen && ! $ficha->estaGenerando() && ($ficha->ilustracionPorPrompt() || ! $ficha->imagen || $ficha->error))
                     <div class="bg-white shadow-sm sm:rounded-lg p-4 text-sm space-y-3" x-data="{ copiado: false }">
                         <div>
                             <h3 class="font-medium text-gray-900">Ilustración con ChatGPT o Gemini</h3>

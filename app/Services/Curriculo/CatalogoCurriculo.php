@@ -110,6 +110,7 @@ class CatalogoCurriculo
 
         $ordenados = $pedidos->filter(fn ($id) => $validos->contains($id))->values()->all();
 
-        return [$ordenados, count($ids) - count($ordenados)];
+        // Un id repetido cuenta una sola vez como descartado.
+        return [$ordenados, count(array_unique($ids, SORT_REGULAR)) - count($ordenados)];
     }
 }

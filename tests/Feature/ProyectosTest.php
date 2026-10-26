@@ -193,6 +193,16 @@ class ProyectosTest extends TestCase
             ->assertDontSee('Proyecto de otra docente');
     }
 
+    public function test_el_listado_muestra_la_idea_de_un_proyecto_que_no_se_pudo_generar(): void
+    {
+        $proyecto = Proyecto::factory()->create(['titulo' => '', 'idea' => 'El agua en Asturias, de los ríos al mar', 'estado' => 'error']);
+
+        $this->actingAs($proyecto->user)->get(route('proyectos'))
+            ->assertOk()
+            ->assertSee('El agua en Asturias, de los ríos al mar')
+            ->assertDontSee('Generando…');
+    }
+
     public function test_restaurar_una_version_anterior(): void
     {
         $proyecto = Proyecto::factory()->create();
@@ -204,5 +214,35 @@ class ProyectosTest extends TestCase
 
         $this->assertSame('Versión uno', $proyecto->fresh()->titulo);
         $this->assertSame(3, $proyecto->versiones()->count());
+    }
+
+    public function test_no_se_restaura_ni_se_edita_mientras_se_genera_un_ajuste(): void
+    {
+        $proyecto = Proyecto::factory()->create();
+        $v1 = $proyecto->guardarVersion($this->contenidoValido('Versión uno'));
+        $proyecto->guardarVersion($this->contenidoValido('Versión dos'), 'Cambio');
+        $proyecto->forceFill(['estado' => 'generando'])->save();
+
+        Volt::actingAs($proyecto->user)->test('pages.proyectos.ver', ['proyecto' => $proyecto->fresh()])
+            ->call('restaurar', $v1->id)
+            ->call('actualizar', 'lema', 'Editado durante el ajuste');
+
+        $proyecto->refresh();
+        $this->assertSame('generando', $proyecto->estado);
+        $this->assertSame('Versión dos', $proyecto->titulo);
+        $this->assertSame('Una expedición por los continentes', $proyecto->contenido['lema']);
+        $this->assertSame(2, $proyecto->versiones()->count());
+    }
+
+    public function test_el_titulo_editado_a_mano_se_corta_a_255_caracteres(): void
+    {
+        $proyecto = Proyecto::factory()->create(['estado' => 'listo', 'contenido' => $this->contenidoValido()]);
+
+        Volt::actingAs($proyecto->user)->test('pages.proyectos.ver', ['proyecto' => $proyecto])
+            ->call('actualizar', 'titulo', str_repeat('a', 300));
+
+        $proyecto->refresh();
+        $this->assertSame(str_repeat('a', 255), $proyecto->titulo);
+        $this->assertSame(str_repeat('a', 255), $proyecto->contenido['titulo']);
     }
 }

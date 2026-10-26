@@ -20,6 +20,18 @@ class Ficha extends Model
 
     protected $table = 'fichas';
 
+    /**
+     * Al borrar la ficha se borra también su ilustración del disco.
+     */
+    protected static function booted(): void
+    {
+        static::deleted(function (Ficha $ficha) {
+            if ($ficha->imagen) {
+                Storage::disk('public')->delete($ficha->imagen);
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [

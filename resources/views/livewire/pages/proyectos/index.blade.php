@@ -32,7 +32,7 @@ new #[Layout('layouts.app')] class extends Component
                     @foreach ($this->proyectos as $p)
                         <li wire:key="p-{{ $p->id }}">
                             <a href="{{ route('proyectos.ver', $p) }}" wire:navigate class="flex flex-wrap items-baseline justify-between gap-2 px-5 py-4 hover:bg-gray-50">
-                                <span class="font-medium text-gray-900">{{ $p->titulo ?: 'Generando…' }}</span>
+                                <span class="font-medium text-gray-900">{{ $p->titulo ?: ($p->estaGenerando() ? 'Generando…' : str($p->idea)->limit(60)) }}</span>
                                 <span class="text-sm text-gray-600">
                                     {{ $p->clase?->nombre ?? $p->curso.'.º' }}
                                     · {{ $p->tipo === 'centro' ? 'Centro' : 'Aula' }}

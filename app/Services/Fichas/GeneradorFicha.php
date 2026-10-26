@@ -71,7 +71,7 @@ class GeneradorFicha
 
         return [
             'contenido' => $contenido,
-            'titulo' => $this->texto($raw['titulo'] ?? '') ?: 'Ficha',
+            'titulo' => str($this->texto($raw['titulo'] ?? ''))->limit(255, '')->toString() ?: 'Ficha',
             'criterios' => $criterios,
             'ilustracion' => $this->texto($raw['ilustracion'] ?? ''),
             'descartados' => $descartados,

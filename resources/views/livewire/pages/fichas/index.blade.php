@@ -39,7 +39,7 @@ new #[Layout('layouts.app')] class extends Component
                     @foreach ($this->fichas as $f)
                         <li wire:key="f-{{ $f->id }}">
                             <a href="{{ route('fichas.ver', $f) }}" wire:navigate class="flex flex-wrap items-baseline justify-between gap-2 px-5 py-4 hover:bg-gray-50">
-                                <span class="font-medium text-gray-900">{{ $f->titulo ?: 'Generando…' }}</span>
+                                <span class="font-medium text-gray-900">{{ $f->titulo ?: ($f->estaGenerando() ? 'Generando…' : str($f->tema)->limit(60)) }}</span>
                                 <span class="text-sm text-gray-600">
                                     {{ $this->areas[$f->area] ?? $f->area }} · {{ $f->curso }}.º
                                     @if ($f->proyecto) · {{ $f->proyecto->titulo }} @endif

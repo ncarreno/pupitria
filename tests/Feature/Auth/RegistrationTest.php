@@ -33,4 +33,20 @@ class RegistrationTest extends TestCase
 
         $this->assertAuthenticated();
     }
+
+    public function test_los_errores_del_registro_salen_en_espanol_con_el_nombre_del_campo(): void
+    {
+        Volt::test('pages.auth.register')
+            ->set('email', 'no-es-un-email')
+            ->set('password', 'password')
+            ->set('password_confirmation', 'otra')
+            ->call('register')
+            ->assertHasErrors([
+                'name' => 'El campo nombre es obligatorio.',
+                'email' => 'Escribe un email válido.',
+                'password' => 'La confirmación de contraseña no coincide.',
+            ]);
+
+        $this->assertGuest();
+    }
 }

@@ -36,6 +36,9 @@ new #[Layout('layouts.app')] class extends Component
         $this->claseId = $proyecto?->clase_id ?? $this->clases->first()?->id;
 
         $tarea = $proyecto && $this->tarea !== null ? data_get($proyecto->contenido, "tareas.{$this->tarea}") : null;
+        if (! is_array($tarea)) {
+            $this->tarea = null;
+        }
         $this->area = collect($tarea['areas'] ?? [])->first(fn ($a) => in_array($a, $this->areasDisponibles->keys()->all(), true))
             ?? $this->areasDisponibles->keys()->first() ?? '';
         $this->tema = $tarea ? "{$tarea['titulo']}: {$tarea['descripcion']}" : '';
@@ -96,11 +99,13 @@ new #[Layout('layouts.app')] class extends Component
         }
 
         $proyecto = $this->proyectoElegido;
+        $tareaExiste = $proyecto && $this->tarea !== null && $this->tarea >= 0
+            && is_array(data_get($proyecto->contenido, "tareas.{$this->tarea}"));
 
         $ficha = auth()->user()->fichas()->create([
             'clase_id' => $clase->id,
             'proyecto_id' => $proyecto?->id,
-            'tarea_indice' => $proyecto ? $this->tarea : null,
+            'tarea_indice' => $tareaExiste ? $this->tarea : null,
             'area' => $this->area,
             'curso' => $clase->curso,
             'tema' => $this->tema,

@@ -35,6 +35,23 @@ class PasswordResetTest extends TestCase
         Notification::assertSentTo($user, ResetPassword::class);
     }
 
+    public function test_el_email_para_cambiar_la_contrasena_sale_en_espanol(): void
+    {
+        Notification::fake();
+        $user = User::factory()->create();
+
+        Volt::test('pages.auth.forgot-password')
+            ->set('email', $user->email)
+            ->call('sendPasswordResetLink')
+            ->assertHasNoErrors();
+
+        Notification::assertSentTo($user, ResetPassword::class, function (ResetPassword $notificacion) use ($user) {
+            $correo = $notificacion->toMail($user);
+
+            return $correo->subject === 'Cambia tu contraseña' && $correo->actionText === 'Cambiar la contraseña';
+        });
+    }
+
     public function test_reset_password_screen_can_be_rendered(): void
     {
         Notification::fake();

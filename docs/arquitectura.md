@@ -15,7 +15,7 @@
 ## Módulos
 | Módulo | Qué hace |
 |---|---|
-| **Cuentas** | Registro e inicio de sesión de docentes (starter kit de Livewire). Rol docente o administrador. Preferencias: estilo visual por defecto. |
+| **Cuentas** | Registro e inicio de sesión de docentes (starter kit de Livewire), con verificación del email obligatoria antes de usar la app. Rol docente o administrador. Preferencias: estilo visual por defecto. |
 | **Mis clases** | Varias clases por docente: curso, número de alumnos, áreas, curso escolar y cuántos necesitan refuerzo o ampliación. |
 | **Currículo** | Decreto 57/2022 en tablas propias, de solo lectura y versionadas por normativa. Navegable por área y ciclo. |
 | **Proyectos** | Generar, ajustar con instrucciones cortas, editar en línea, historial de versiones y duplicar. Alcance de aula o de centro (itinerario 1.º–6.º). |
@@ -94,7 +94,7 @@ La **validación curricular es independiente de la IA**: criterios y saberes se 
 
 ## Despliegue en Plesk
 - PHP 8.4+ con FPM, MySQL/MariaDB y HTTPS.
-- **Cola:** worker con Supervisor si hay root; si no, tarea programada de Plesk cada minuto con `queue:work --stop-when-empty`.
+- **Cola:** worker con Supervisor si hay root; si no, tarea programada de Plesk cada minuto con `queue:work --stop-when-empty`. Como puede haber varios workers a la vez, `retry_after` de la cola `database` (460 s, `DB_QUEUE_RETRY_AFTER`) debe ser mayor que el timeout más largo de los jobs; si no, otro worker coge un job que sigue en marcha y lo da por fallido.
 - `php artisan storage:link`. Chromium para los PDF.
 - Claves de los proveedores activos (Anthropic y OpenAI como mínimo).
 - Copias diarias de la base de datos y de `storage/app/public`.

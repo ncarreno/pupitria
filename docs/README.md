@@ -17,13 +17,13 @@ App para que docentes de Primaria (piloto en Asturias) generen proyectos y ficha
 
 ## Entorno local
 - Laravel 13, Livewire 3 + Volt, Alpine, Tailwind, `laravel/ai`. PHP 8.4 con Laravel Herd, MySQL. URL `http://app-colegios.test`.
-- `composer run dev` arranca Vite y el worker de la cola. **Sin la cola no se genera nada** (proyectos y fichas van en jobs).
+- `composer run dev` arranca Vite, el worker de la cola, los logs (`pail`) y `artisan serve` (sobra con Herd). **Sin la cola no se genera nada** (proyectos y fichas van en jobs).
 - `php artisan test` antes de dar algo por terminado.
 - Comandos propios: `curriculo:importar`, `usuarios:admin {email}`, `ia:probar`, `ia:probar-imagen`.
 - Claves en `.env`: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`.
 
 ## Reglas para trabajar en el código
-- **Interfaz, dominio y tests en español** (modelos `Ficha`, `Clase`; métodos como `estaGenerando()`; textos dirigidos a "la docente"). Mantener ese estilo.
+- **Interfaz, dominio y tests en español** (modelos `Ficha`, `Clase`; métodos como `estaGenerando()`; textos dirigidos a "la docente"). Mantener ese estilo. Los textos nuevos se escriben directamente en español; `lang/es/` y `lang/es.json` traducen solo lo que viene del framework y del starter kit (validación, login, emails). Un campo nuevo con validación lleva su nombre en `attributes` de `lang/es/validation.php`.
 - **Sin datos personales de alumnos.** Solo curso, número de alumnos, cuántos con refuerzo o ampliación y áreas. Nada de eso cambia sin decisión de Nacho.
 - **Toda llamada a la IA pasa por `App\Services\IA\ClienteIA`**, que lee `ia_configuraciones` y registra en `generaciones` (sin guardar el texto). No llamar al SDK directamente desde otro sitio.
 - **Validación curricular independiente de la IA:** los ids de criterios y saberes se comprueban contra la base de datos y se descartan los inventados.

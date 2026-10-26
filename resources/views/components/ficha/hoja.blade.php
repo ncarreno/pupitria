@@ -29,6 +29,7 @@
         .hoja-ficha .b{border:1.5px solid var(--tinta);padding:12px 14px;margin:0 0 14px;break-inside:avoid}
         .hoja-ficha .b h2{font-family:"Kalam",cursive;font-size:20px;font-weight:700;color:var(--rojo);margin:0 0 8px;line-height:1.1}
         .hoja-ficha .b p{margin:0}
+        .hoja-ficha .b p.enunciado{font-weight:700;margin:0 0 8px}
         .hoja-ficha .lineas{display:grid;gap:22px;margin-top:10px}
         .hoja-ficha .lineas span{border-bottom:1.5px dotted currentColor;display:block;height:1px}
         .hoja-ficha .opc{display:flex;flex-wrap:wrap;gap:6px 18px;margin:4px 0 10px}
@@ -78,8 +79,11 @@
     @foreach ($n['bloques'] as $i => $b)
         @php $p = "{$base}.{$i}"; @endphp
         <section class="b">
-            @if ($b['titulo'] !== '' || $b['enunciado'] !== '')
-                <x-proyecto.campo :editable="$e" :ruta="$p.($b['titulo'] !== '' ? '.titulo' : '.enunciado')" tag="h2" :valor="$b['titulo'] !== '' ? $b['titulo'] : $b['enunciado']" />
+            @if ($b['titulo'] !== '')
+                <x-proyecto.campo :editable="$e" :ruta="$p.'.titulo'" tag="h2" :valor="$b['titulo']" />
+            @endif
+            @if ($b['enunciado'] !== '')
+                <x-proyecto.campo :editable="$e" :ruta="$p.'.enunciado'" :tag="$b['titulo'] !== '' ? 'p' : 'h2'" class="enunciado" :valor="$b['enunciado']" />
             @endif
 
             @switch($b['tipo'])

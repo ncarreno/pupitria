@@ -9,12 +9,13 @@ App Laravel para que docentes de Primaria (piloto en Asturias) generen proyectos
 **Antes de trabajar, lee `docs/README.md`**: estado actual, reglas del proyecto (español en dominio e interfaz, sin datos de alumnos, toda llamada a la IA por `ClienteIA`, aislamiento entre docentes) y enlaces a producto, arquitectura y sprints. El próximo trabajo está en `docs/sprints/sprint-4.md`. Al cerrar un sprint, actualiza su archivo en `docs/sprints/` y la hoja de ruta de `docs/arquitectura.md`.
 
 ## Comandos
-- `composer run dev`: Vite y worker de la cola. Sin la cola no se genera nada.
+- `composer run dev`: `artisan serve`, Vite, worker de la cola y logs (`pail`). Sin la cola no se genera nada. La web la sirve Herd; `serve` sobra pero no molesta.
 - `php artisan test --compact` (todo) · `php artisan test --compact tests/Feature/FichasTest.php --filter=nombreDelTest` (uno).
 - `vendor/bin/pint --dirty --format agent` tras tocar PHP.
 - `php artisan curriculo:importar` carga `database/data/curriculo-primaria-asturias.json`; `php artisan db:seed --class=IaConfiguracionSeeder` crea la configuración de IA por tarea.
 - `php artisan ia:probar` / `ia:probar-imagen` hacen llamadas reales (gastan saldo de API).
-- No es un repositorio git: no hay historial para deshacer cambios.
+- Es un repositorio git (rama `main`).
+- Las docentes tienen que verificar su email: las páginas de la app usan el middleware `verified`. En local `MAIL_MAILER=log`, así que el enlace sale en `storage/logs/laravel.log`.
 
 ## Flujo de generación (proyectos y fichas)
 Página Volt (`resources/views/livewire/pages/{proyectos,fichas}/`) crea el registro en estado `generando` → job `App\Jobs\Generar{Proyecto,Ficha}` → `App\Services\{Proyectos\GeneradorProyecto,Fichas\GeneradorFicha}` monta el prompt con las vistas de `resources/views/prompts/` y el esquema JSON → `ClienteIA::generarEstructurado()` → `CatalogoCurriculo::filtrarCriterios/filtrarSaberes/derivados` descarta ids inventados y calcula competencias y descriptores → se guarda el resultado; la página consulta el estado con `wire:poll`. Las imágenes van por `ClienteIA::generarImagen()`.

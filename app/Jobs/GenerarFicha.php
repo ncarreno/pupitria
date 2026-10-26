@@ -7,6 +7,7 @@ use App\Services\Fichas\GeneradorFicha;
 use App\Services\IA\ClienteIA;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 /**
@@ -29,21 +30,20 @@ class GenerarFicha implements ShouldQueue
         try {
             $resultado = $generador->generar($this->ficha);
         } catch (Throwable $e) {
-            $this->ficha->forceFill([
-                'estado' => 'error',
-                'error' => 'No se ha podido generar la ficha. Vuelve a intentarlo en unos minutos.',
-            ])->save();
-            report($e);
+            $this->failed($e);
 
             return;
         }
 
         $error = null;
-        $imagen = $this->ficha->imagen;
+        $anterior = $this->ficha->imagen;
+        $imagen = $anterior;
         $prompt = null;
 
-        if ($this->ficha->con_imagen && $resultado['ilustracion'] !== '') {
-            $estilo = $resultado['ilustracion'].'. Ilustración sencilla para una ficha escolar de Primaria que se va a imprimir: línea clara, colores planos y fondo blanco.';
+        if ($this->ficha->con_imagen) {
+            // La docente pidió ilustración: si la IA no propone ninguna, se ilustra el título.
+            $descripcion = $resultado['ilustracion'] !== '' ? $resultado['ilustracion'] : 'Una escena que ilustre «'.$resultado['titulo'].'»';
+            $estilo = $descripcion.'. Ilustración sencilla para una ficha escolar de Primaria que se va a imprimir: línea clara, colores planos y fondo blanco.';
             $prompt = 'Crea una imagen horizontal (apaisada, proporción 3:2). '.$estilo.' '.ClienteIA::SIN_TEXTO;
 
             if ($this->ficha->imagen_por === 'openai') {
@@ -67,5 +67,22 @@ class GenerarFicha implements ShouldQueue
         ])->save();
 
         $this->ficha->criterios()->sync($resultado['criterios']);
+
+        if ($anterior && $anterior !== $imagen) {
+            Storage::disk('public')->delete($anterior);
+        }
+    }
+
+    /**
+     * También la llama la cola si el job se corta (timeout o worker caído), para que la ficha no se quede en "generando".
+     */
+    public function failed(?Throwable $exception): void
+    {
+        $this->ficha->forceFill([
+            'estado' => 'error',
+            'error' => 'No se ha podido generar la ficha. Vuelve a intentarlo en unos minutos.',
+        ])->save();
+
+        report($exception);
     }
 }

@@ -42,6 +42,15 @@ class CurriculoTest extends TestCase
         $this->assertSame(3, $descartados);
     }
 
+    public function test_un_id_repetido_cuenta_una_sola_vez(): void
+    {
+        [$validos, $descartados] = app(CatalogoCurriculo::class)
+            ->filtrarCriterios(['LCL.C2.4.1', 'LCL.C2.4.1', 'LCL.C9.9.9', 'LCL.C9.9.9'], 2, ['LCL']);
+
+        $this->assertSame(['LCL.C2.4.1'], $validos);
+        $this->assertSame(1, $descartados);
+    }
+
     public function test_calcula_descriptores_a_partir_de_criterios(): void
     {
         $d = app(CatalogoCurriculo::class)->derivados(['MAT.C2.1.1']);

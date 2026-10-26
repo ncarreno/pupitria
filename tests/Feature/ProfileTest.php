@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Volt\Volt;
 use Tests\TestCase;
 
@@ -80,6 +81,21 @@ class ProfileTest extends TestCase
 
         $this->assertGuest();
         $this->assertNull($user->fresh());
+    }
+
+    public function test_al_borrar_la_cuenta_se_borran_sus_imagenes(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create();
+        Storage::disk('public')->put("imagenes/{$user->id}/koala.png", 'imagen');
+        Storage::disk('public')->put('imagenes/otra/koala.png', 'imagen');
+
+        Volt::actingAs($user)->test('profile.delete-user-form')
+            ->set('password', 'password')
+            ->call('deleteUser');
+
+        Storage::disk('public')->assertMissing("imagenes/{$user->id}/koala.png");
+        Storage::disk('public')->assertExists('imagenes/otra/koala.png');
     }
 
     public function test_correct_password_must_be_provided_to_delete_account(): void

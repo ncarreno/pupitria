@@ -47,14 +47,15 @@ new #[Layout('layouts.app')] class extends Component
         $this->skipRender();
 
         $contenido = $this->proyecto->contenido ?? [];
-        if (! preg_match(self::RUTAS_EDITABLES, $ruta) || ! is_string(data_get($contenido, $ruta))) {
+        if ($this->proyecto->estaGenerando() || ! preg_match(self::RUTAS_EDITABLES, $ruta) || ! is_string(data_get($contenido, $ruta))) {
             return;
         }
 
-        data_set($contenido, $ruta, str(trim($valor))->limit(2000, '')->toString());
+        $valor = str(trim($valor))->limit($ruta === 'titulo' ? 255 : 2000, '')->toString();
+        data_set($contenido, $ruta, $valor);
         $this->proyecto->forceFill([
             'contenido' => $contenido,
-            'titulo' => $ruta === 'titulo' ? trim($valor) : $this->proyecto->titulo,
+            'titulo' => $ruta === 'titulo' ? $valor : $this->proyecto->titulo,
         ])->save();
     }
 
@@ -91,6 +92,10 @@ new #[Layout('layouts.app')] class extends Component
     public function restaurar(int $versionId): void
     {
         $this->authorize('update', $this->proyecto);
+
+        if ($this->proyecto->estaGenerando()) {
+            return;
+        }
 
         $version = $this->proyecto->versiones()->findOrFail($versionId);
         $this->proyecto->guardarVersion($version->contenido, "Restaurar versión {$version->numero}", $version->proveedor, $version->modelo);

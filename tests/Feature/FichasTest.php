@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\GenerarFicha;
 use App\Models\Area;
 use App\Models\Clase;
 use App\Models\Ficha;
@@ -283,5 +284,145 @@ class FichasTest extends TestCase
         $this->assertSame('El koala vive en Australia y come eucalipto.', $ficha->contenido['estandar']['bloques'][0]['texto']);
         $this->assertSame('lectura', $ficha->contenido['estandar']['bloques'][0]['tipo']);
         $this->assertSame('El koala', $ficha->titulo);
+    }
+
+    public function test_el_titulo_editado_a_mano_se_corta_a_255_caracteres(): void
+    {
+        $ficha = Ficha::factory()->create(['estado' => 'listo', 'contenido' => $this->respuestaIA()['niveles']]);
+
+        Volt::actingAs($ficha->user)->test('pages.fichas.ver', ['ficha' => $ficha])
+            ->call('actualizar', 'titulo', str_repeat('a', 300));
+
+        $this->assertSame(str_repeat('a', 255), $ficha->refresh()->titulo);
+    }
+
+    public function test_mientras_se_regenera_no_se_guardan_ediciones_a_mano(): void
+    {
+        $ficha = Ficha::factory()->create(['estado' => 'generando', 'contenido' => $this->respuestaIA()['niveles']]);
+
+        Volt::actingAs($ficha->user)->test('pages.fichas.ver', ['ficha' => $ficha])
+            ->call('actualizar', 'titulo', 'Editado durante la generación');
+
+        $this->assertSame('El koala', $ficha->refresh()->titulo);
+    }
+
+    public function test_si_la_cola_corta_el_job_la_ficha_no_se_queda_generando(): void
+    {
+        $ficha = Ficha::factory()->create(['estado' => 'generando']);
+
+        (new GenerarFicha($ficha))->failed(new RuntimeException('Timeout del worker'));
+
+        $ficha->refresh();
+        $this->assertSame('error', $ficha->estado);
+        $this->assertSame('No se ha podido generar la ficha. Vuelve a intentarlo en unos minutos.', $ficha->error);
+    }
+
+    public function test_si_la_ia_no_propone_ilustracion_el_prompt_ilustra_el_titulo(): void
+    {
+        StructuredAnonymousAgent::fake([array_merge($this->respuestaIA(), ['ilustracion' => ''])]);
+        $clase = $this->claseDe3();
+
+        Volt::actingAs($clase->user)->test('pages.fichas.nueva')
+            ->set('claseId', $clase->id)->set('area', 'CN')->set('tema', 'El koala y su bosque')
+            ->set('ilustracion', 'prompt')
+            ->call('crear');
+
+        $this->assertStringContainsString('«El koala y su bosque»', Ficha::sole()->prompt_imagen);
+    }
+
+    public function test_al_regenerar_con_openai_se_borra_la_imagen_anterior(): void
+    {
+        Storage::fake('public');
+        StructuredAnonymousAgent::fake([$this->respuestaIA()]);
+        Image::fake();
+        Storage::disk('public')->put('imagenes/vieja.png', 'imagen');
+        $ficha = Ficha::factory()->create([
+            'estado' => 'listo', 'contenido' => $this->respuestaIA()['niveles'],
+            'con_imagen' => true, 'imagen_por' => 'openai', 'imagen' => 'imagenes/vieja.png',
+        ]);
+
+        Volt::actingAs($ficha->user)->test('pages.fichas.ver', ['ficha' => $ficha])->call('regenerar');
+
+        $ficha->refresh();
+        $this->assertNotSame('imagenes/vieja.png', $ficha->imagen);
+        Storage::disk('public')->assertExists($ficha->imagen);
+        Storage::disk('public')->assertMissing('imagenes/vieja.png');
+    }
+
+    public function test_si_falla_la_ilustracion_al_regenerar_se_ofrece_el_prompt_y_se_conserva_la_imagen(): void
+    {
+        Storage::fake('public');
+        StructuredAnonymousAgent::fake([$this->respuestaIA()]);
+        Image::fake(fn () => throw new RuntimeException('Sin saldo'));
+        Storage::disk('public')->put('imagenes/vieja.png', 'imagen');
+        $ficha = Ficha::factory()->create([
+            'estado' => 'listo', 'contenido' => $this->respuestaIA()['niveles'],
+            'con_imagen' => true, 'imagen_por' => 'openai', 'imagen' => 'imagenes/vieja.png',
+        ]);
+
+        Volt::actingAs($ficha->user)->test('pages.fichas.ver', ['ficha' => $ficha])->call('regenerar');
+
+        $this->assertSame('imagenes/vieja.png', $ficha->refresh()->imagen);
+        Storage::disk('public')->assertExists('imagenes/vieja.png');
+        $this->actingAs($ficha->user)->get(route('fichas.ver', $ficha))
+            ->assertOk()
+            ->assertSee('Copiar el prompt');
+    }
+
+    public function test_al_borrar_la_ficha_se_borra_su_imagen(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('imagenes/koala.png', 'imagen');
+        $ficha = Ficha::factory()->create(['estado' => 'listo', 'contenido' => $this->respuestaIA()['niveles'], 'imagen' => 'imagenes/koala.png']);
+
+        Volt::actingAs($ficha->user)->test('pages.fichas.ver', ['ficha' => $ficha])->call('borrar');
+
+        $this->assertModelMissing($ficha);
+        Storage::disk('public')->assertMissing('imagenes/koala.png');
+    }
+
+    public function test_una_tarea_que_no_existe_no_se_guarda_en_la_ficha(): void
+    {
+        StructuredAnonymousAgent::fake([$this->respuestaIA()]);
+        $clase = $this->claseDe3();
+        $proyecto = Proyecto::factory()->for($clase)->create([
+            'user_id' => $clase->user_id,
+            'estado' => 'listo',
+            'contenido' => ['tareas' => [['titulo' => 'Fichas de animales', 'descripcion' => 'Cómo se adaptan.', 'areas' => ['CN'], 'criterios' => []]]],
+        ]);
+
+        Volt::actingAs($clase->user)->test('pages.fichas.nueva', ['proyecto' => $proyecto->id, 'tarea' => -1])
+            ->assertSet('tarea', null)
+            ->set('tema', 'El koala y su bosque')
+            ->call('crear')
+            ->assertHasNoErrors();
+
+        $ficha = Ficha::sole();
+        $this->assertSame($proyecto->id, $ficha->proyecto_id);
+        $this->assertNull($ficha->tarea_indice);
+    }
+
+    public function test_el_listado_muestra_el_tema_de_una_ficha_que_no_se_pudo_generar(): void
+    {
+        $ficha = Ficha::factory()->create(['titulo' => '', 'tema' => 'Animales de Oceanía', 'estado' => 'error']);
+
+        $this->actingAs($ficha->user)->get(route('fichas'))
+            ->assertOk()
+            ->assertSee('Animales de Oceanía')
+            ->assertDontSee('Generando…');
+    }
+
+    public function test_un_bloque_con_titulo_y_enunciado_muestra_los_dos(): void
+    {
+        $bloques = [$this->bloque('preguntas', ['titulo' => 'Piensa', 'enunciado' => 'Responde con frases completas.', 'preguntas' => ['¿Qué come el koala?']])];
+        $ficha = Ficha::factory()->create(['estado' => 'listo', 'contenido' => [
+            'refuerzo' => ['consigna' => '', 'bloques' => []],
+            'estandar' => ['consigna' => 'Lee y responde.', 'bloques' => $bloques],
+            'ampliacion' => ['consigna' => '', 'bloques' => []],
+        ]]);
+
+        $this->actingAs($ficha->user)->get(route('fichas.ver', $ficha))
+            ->assertOk()
+            ->assertSeeInOrder(['Piensa', 'Responde con frases completas.', '¿Qué come el koala?']);
     }
 }
