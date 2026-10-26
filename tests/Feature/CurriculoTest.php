@@ -33,6 +33,26 @@ class CurriculoTest extends TestCase
         $this->assertSame(429, Criterio::count());
     }
 
+    public function test_lo_que_ya_no_esta_en_el_json_se_avisa_y_solo_se_borra_si_se_pide(): void
+    {
+        $existente = Criterio::findOrFail('LCL.C2.4.1');
+        $sobrante = Criterio::create([
+            'id' => 'LCL.C2.99.1', 'competencia_especifica_id' => $existente->competencia_especifica_id,
+            'area_id' => $existente->area_id, 'ciclo' => 2, 'codigo' => '99.1', 'texto' => 'Criterio retirado del decreto',
+        ]);
+
+        $this->artisan('curriculo:importar')
+            ->expectsOutputToContain('Hay 1 criterios que ya no están en el JSON: LCL.C2.99.1')
+            ->assertSuccessful();
+        $this->assertModelExists($sobrante);
+
+        $this->artisan('curriculo:importar', ['--borrar-sobrantes' => true])
+            ->expectsOutputToContain('Borrados 1 criterios que ya no están en el JSON: LCL.C2.99.1')
+            ->assertSuccessful();
+        $this->assertModelMissing($sobrante);
+        $this->assertSame(429, Criterio::count());
+    }
+
     public function test_descarta_criterios_inventados_o_de_otro_ciclo(): void
     {
         [$validos, $descartados] = app(CatalogoCurriculo::class)

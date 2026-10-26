@@ -16,8 +16,10 @@ use Illuminate\Support\Facades\DB;
 /**
  * Importa el currículo extraído del decreto (JSON) a las tablas del currículo.
  * Es idempotente: se puede ejecutar varias veces y actualiza lo que haya cambiado.
+ * Lo que ya no está en el JSON solo se avisa; se borra con --borrar-sobrantes, porque
+ * los proyectos y fichas guardados pueden citarlo y lo perderían.
  */
-#[Signature('curriculo:importar {archivo? : Ruta al JSON del currículo}')]
+#[Signature('curriculo:importar {archivo? : Ruta al JSON del currículo} {--borrar-sobrantes : Borra competencias, criterios y saberes que ya no están en el JSON}')]
 #[Description('Importa el currículo de Primaria de Asturias (Decreto 57/2022) desde el JSON')]
 class ImportarCurriculo extends Command
 {
@@ -45,8 +47,9 @@ class ImportarCurriculo extends Command
         }
 
         $datos = json_decode(file_get_contents($ruta), true, flags: JSON_THROW_ON_ERROR);
+        $vistos = ['competencias' => [], 'criterios' => [], 'saberes' => []];
 
-        DB::transaction(function () use ($datos) {
+        $normativa = DB::transaction(function () use ($datos, &$vistos) {
             $normativa = Normativa::updateOrCreate(
                 ['codigo' => 'asturias-primaria-d57-2022'],
                 [
@@ -80,6 +83,7 @@ class ImportarCurriculo extends Command
                 );
 
                 foreach ($a['competencias'] as $c) {
+                    $vistos['competencias'][] = $c['id'];
                     $competencia = CompetenciaEspecifica::updateOrCreate(
                         ['codigo' => $c['id']],
                         ['area_id' => $area->id, 'numero' => $c['numero'], 'enunciado' => $c['enunciado']],
@@ -90,6 +94,7 @@ class ImportarCurriculo extends Command
                     );
 
                     foreach ($c['criterios'] as $cr) {
+                        $vistos['criterios'][] = $cr['id'];
                         Criterio::updateOrCreate(
                             ['id' => $cr['id']],
                             [
@@ -107,6 +112,7 @@ class ImportarCurriculo extends Command
                 foreach ($a['saberes'] as $bloque) {
                     foreach ($bloque['apartados'] as $apartado) {
                         foreach ($apartado['items'] as $item) {
+                            $vistos['saberes'][] = $item['id'];
                             Saber::updateOrCreate(
                                 ['id' => $item['id']],
                                 [
@@ -122,7 +128,11 @@ class ImportarCurriculo extends Command
                     }
                 }
             }
+
+            return $normativa;
         });
+
+        $this->tratarSobrantes($normativa, $vistos);
 
         $this->table(['Áreas', 'Competencias', 'Criterios', 'Saberes', 'Descriptores'], [[
             Area::count(), CompetenciaEspecifica::count(), Criterio::count(), Saber::count(), Descriptor::count(),
@@ -130,5 +140,37 @@ class ImportarCurriculo extends Command
         $this->info('Currículo importado.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Avisa de lo que está en la base de datos de esta normativa pero ya no en el JSON, y lo borra si se pide.
+     *
+     * @param  array{competencias: array<string>, criterios: array<string>, saberes: array<string>}  $vistos
+     */
+    private function tratarSobrantes(Normativa $normativa, array $vistos): void
+    {
+        $deLaNormativa = fn ($q) => $q->where('normativa_id', $normativa->id);
+
+        // Las competencias van al final: al borrarlas se borran en cascada sus criterios y no saldrían en el aviso.
+        $sobrantes = [
+            'criterios' => Criterio::whereHas('area', $deLaNormativa)->whereNotIn('id', $vistos['criterios']),
+            'saberes' => Saber::whereHas('area', $deLaNormativa)->whereNotIn('id', $vistos['saberes']),
+            'competencias' => CompetenciaEspecifica::whereHas('area', $deLaNormativa)->whereNotIn('codigo', $vistos['competencias']),
+        ];
+
+        foreach ($sobrantes as $tipo => $consulta) {
+            $ids = (clone $consulta)->pluck($tipo === 'competencias' ? 'codigo' : 'id');
+
+            if ($ids->isEmpty()) {
+                continue;
+            }
+
+            if ($this->option('borrar-sobrantes')) {
+                $consulta->delete();
+                $this->warn("Borrados {$ids->count()} {$tipo} que ya no están en el JSON: {$ids->implode(', ')}");
+            } else {
+                $this->warn("Hay {$ids->count()} {$tipo} que ya no están en el JSON: {$ids->implode(', ')}. Se mantienen; usa --borrar-sobrantes para borrarlos.");
+            }
+        }
     }
 }

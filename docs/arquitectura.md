@@ -71,6 +71,8 @@ La **validación curricular es independiente de la IA**: criterios y saberes se 
 ## Modelo de datos
 **Currículo (solo lectura, desde `database/data/curriculo-primaria-asturias.json`)**
 - `normativas`, `areas`, `competencias_especificas`, `criterios` (id estable `MAT.C2.1.1`), `saberes` (id estable `CN.C2.A.2.4`), `descriptores` y pivote `competencia_descriptor`. 10 áreas, 58 competencias, 429 criterios, 865 saberes, 34 descriptores.
+- `curriculo:importar` actualiza lo que cambie en el JSON. Lo que ya no está solo se avisa y se borra con `--borrar-sobrantes`. Antes de usarlo, mira si algún proyecto o ficha cita esos ids: al borrar un criterio o un saber se quita también de sus proyectos y fichas.
+- **Una sola normativa.** Las consultas buscan las áreas por `codigo` sin filtrar por normativa, y `competencias_especificas.codigo` es único en toda la tabla. Vale mientras solo esté Asturias (otras comunidades quedan fuera de la v1). Para añadir otra hará falta guardar la normativa en la clase, filtrar por ella y que el código de competencia sea único por área.
 
 **Datos de cada docente**
 - `users`: nombre, email, contraseña, preferencias, rol (docente o administrador).
