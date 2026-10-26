@@ -7,15 +7,15 @@
   - No deja una tarea sin proveedor activo.
   - El tiempo máximo tiene un tope por tarea (`IaConfiguracion::TIMEOUT_MAXIMO`) para que quepa en el timeout del job.
   - `ClienteIA::generarEstructurado()` y `generarImagen()` aceptan `soloEsta` (una fila, sin respaldo) para el botón Probar. Las pruebas se registran como tarea `prueba`.
+- **B. Uso `/admin/ia/uso`** (solo tokens; el coste en euros espera la decisión sobre la tabla de precios). Periodo de 7 o 30 días. Por tarea: generaciones, % fallidas, % respondidas por el respaldo y sin terminar. Desglose por proveedor y modelo de las completadas: duración media, tokens de entrada, salida y caché, e ids descartados. Debajo, las 25 últimas generaciones con su error. Una generación fallida no tiene proveedor (fallaron todos los de la cadena), así que las fallidas se cuentan por tarea.
 - **C. Respaldo:** test que confirma que, si el principal limita la tasa, responde el siguiente y `generaciones.respaldo = true`.
-- **Antes de empezar:** el proyecto ya está en git (`main` en GitHub).
+- **Antes de empezar:** el proyecto ya está en git (`main` en GitHub) y se han borrado los `.tgz` de transferencia de `storage/app/private/`.
 - Tests en `AdminIATest` y `ClienteIATest`.
 
 ## Objetivo
 Que Nacho pueda **cambiar proveedor y modelo por tarea sin tocar la base de datos**, ver cuánto y cómo se usa la IA y, antes de cambiar de proveedor, **comparar resultados con casos reales** lado a lado.
 
 ## Antes de empezar
-- Borrar los archivos de transferencia de `storage/app/private/` (`snapshot*.tgz`, `sprint*.tgz`, `imagenes.tgz`).
 - Recoger los comentarios de la beta tester sobre proyectos y fichas (sprints 2 y 3). Definen los casos de la batería y qué es un "buen resultado".
 - Poner `GEMINI_API_KEY` (y la que haga falta) en `.env` si se va a comparar con Gemini.
 

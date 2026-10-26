@@ -208,8 +208,13 @@ new #[Layout('layouts.app')] class extends Component
 
 <div>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Configuración de la IA</h2>
-        <p class="text-sm text-gray-500 mt-1">El primer proveedor activo de cada tarea es el principal. Si falla o limita la tasa, responde el siguiente. Los cambios se aplican en la siguiente generación.</p>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Configuración de la IA</h2>
+                <p class="text-sm text-gray-500 mt-1">El primer proveedor activo de cada tarea es el principal. Si falla o limita la tasa, responde el siguiente. Los cambios se aplican en la siguiente generación.</p>
+            </div>
+            <a href="{{ route('admin.ia.uso') }}" wire:navigate class="text-sm text-indigo-700 hover:underline">Uso de la IA</a>
+        </div>
     </x-slot>
 
     <div class="py-8">

@@ -26,6 +26,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->group(function () {
     Volt::route('ia', 'pages.admin.ia')->name('admin.ia');
+    Volt::route('ia/uso', 'pages.admin.ia-uso')->name('admin.ia.uso');
 });
 
 require __DIR__.'/auth.php';

@@ -99,6 +99,33 @@ class AdminIATest extends TestCase
         $this->assertSame(200, $fila->fresh()->timeout);
     }
 
+    public function test_solo_el_administrador_ve_el_uso(): void
+    {
+        $this->actingAs(User::factory()->create())->get(route('admin.ia.uso'))->assertForbidden();
+        $this->actingAs(User::factory()->admin()->create())->get(route('admin.ia.uso'))->assertOk()->assertSee('Uso de la IA');
+    }
+
+    public function test_el_uso_resume_por_tarea_y_proveedor_dentro_del_periodo(): void
+    {
+        $generacion = fn (array $datos, int $haceDias = 0) => Generacion::create(['tarea' => 'proyecto', 'estado' => 'completada', ...$datos])
+            ->forceFill(['created_at' => now()->subDays($haceDias)])->save();
+        $generacion(['proveedor' => 'anthropic', 'modelo' => 'claude-x', 'duracion_ms' => 1000, 'tokens_entrada' => 12000]);
+        $generacion(['proveedor' => 'anthropic', 'modelo' => 'claude-x', 'duracion_ms' => 3000, 'tokens_entrada' => 345]);
+        $generacion(['proveedor' => 'openai', 'modelo' => 'gpt-x', 'respaldo' => true, 'duracion_ms' => 5000, 'tokens_entrada' => 10]);
+        $generacion(['estado' => 'fallida', 'error' => 'RuntimeException: Proveedor caído']);
+        $generacion(['proveedor' => 'anthropic', 'modelo' => 'claude-x', 'duracion_ms' => 1000, 'tokens_entrada' => 900000], haceDias: 10);
+
+        $uso = Volt::actingAs(User::factory()->admin()->create())->test('pages.admin.ia-uso')
+            ->assertSee('12.345')
+            ->assertSee('2,0 s')
+            ->assertSee('25 % fallidas')
+            ->assertSee('33 % por el respaldo')
+            ->assertSee('Proveedor caído')
+            ->assertDontSee('912.345');
+
+        $uso->set('dias', 30)->assertSee('912.345');
+    }
+
     public function test_probar_usa_solo_el_proveedor_de_la_fila(): void
     {
         StructuredAnonymousAgent::fake(fn ($prompt, $adjuntos, $proveedor) => ['titulo' => 'Responde '.$proveedor->name()]);
