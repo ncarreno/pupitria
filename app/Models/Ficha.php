@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 #[Fillable(['clase_id', 'proyecto_id', 'tarea_indice', 'area', 'curso', 'tema', 'titulo', 'contenido', 'con_imagen', 'imagen_por', 'imagen', 'prompt_imagen', 'estado', 'error', 'ids_descartados'])]
 class Ficha extends Model
@@ -85,6 +86,31 @@ class Ficha extends Model
     public function urlImagen(): ?string
     {
         return $this->imagen ? Storage::disk('public')->url($this->imagen) : null;
+    }
+
+    /**
+     * Copia la ficha en otra clase de la misma docente (la llamada comprueba que sea del mismo curso).
+     * La ilustración se copia en un archivo nuevo: si compartieran archivo, borrar una ficha dejaría a la otra sin imagen.
+     */
+    public function duplicarEn(Clase $clase): Ficha
+    {
+        $copia = $this->replicate(['estado', 'error', 'imagen']);
+        $copia->clase()->associate($clase);
+        $copia->forceFill([
+            'titulo' => str($this->titulo.' (copia)')->limit(255, '')->toString(),
+            'estado' => 'listo',
+        ]);
+
+        if ($this->imagen && Storage::disk('public')->exists($this->imagen)) {
+            $ruta = 'imagenes/'.$this->user_id.'/'.Str::ulid()->toBase32().'.'.pathinfo($this->imagen, PATHINFO_EXTENSION);
+            Storage::disk('public')->copy($this->imagen, $ruta);
+            $copia->imagen = $ruta;
+        }
+
+        $copia->save();
+        $copia->criterios()->sync($this->criterios()->pluck('criterios.id'));
+
+        return $copia;
     }
 
     /**

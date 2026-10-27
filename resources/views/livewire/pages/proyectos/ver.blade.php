@@ -3,6 +3,7 @@
 use App\Jobs\GenerarProyecto;
 use App\Models\Proyecto;
 use App\View\EstilosDocumento;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
@@ -13,6 +14,10 @@ new #[Layout('layouts.app')] class extends Component
     public string $ajuste = '';
 
     public bool $confirmarBorrado = false;
+
+    public bool $duplicando = false;
+
+    public string $claseDestino = '';
 
     /**
      * Campos del documento que la docente puede editar a mano. El currículo no se edita
@@ -76,6 +81,12 @@ new #[Layout('layouts.app')] class extends Component
     {
         $this->authorize('update', $this->proyecto);
 
+        if (! auth()->user()->puedeGenerar()) {
+            $this->addError('limite', auth()->user()->mensajeLimite());
+
+            return;
+        }
+
         $instruccion = trim($instruccion ?? $this->ajuste);
         if ($instruccion === '' || $this->proyecto->estaGenerando() || ! $this->proyecto->contenido) {
             return;
@@ -92,6 +103,12 @@ new #[Layout('layouts.app')] class extends Component
     public function reintentar(): void
     {
         $this->authorize('update', $this->proyecto);
+
+        if (! auth()->user()->puedeGenerar()) {
+            $this->addError('limite', auth()->user()->mensajeLimite());
+
+            return;
+        }
 
         if ($this->proyecto->estado !== 'error') {
             return;
@@ -113,6 +130,41 @@ new #[Layout('layouts.app')] class extends Component
         $version = $this->proyecto->versiones()->findOrFail($versionId);
         $this->proyecto->guardarVersion($version->contenido, "Restaurar versión {$version->numero}", $version->proveedor, $version->modelo);
         $this->proyecto->refresh();
+    }
+
+    /**
+     * Clases a las que se puede duplicar: las de la docente del mismo curso.
+     */
+    #[Computed]
+    public function clasesDestino()
+    {
+        return auth()->user()->clases()->where('curso', $this->proyecto->curso)->get();
+    }
+
+    public function abrirDuplicar(): void
+    {
+        $this->claseDestino = (string) ($this->clasesDestino->firstWhere('id', $this->proyecto->clase_id)?->id ?? $this->clasesDestino->first()?->id ?? '');
+        $this->resetValidation('claseDestino');
+        $this->duplicando = true;
+    }
+
+    public function duplicar(): void
+    {
+        $this->authorize('view', $this->proyecto);
+
+        if (! $this->proyecto->contenido || $this->proyecto->estaGenerando()) {
+            return;
+        }
+
+        $clase = $this->clasesDestino->firstWhere('id', (int) $this->claseDestino);
+        if (! $clase) {
+            $this->addError('claseDestino', "Elige una de tus clases de {$this->proyecto->curso}.º.");
+
+            return;
+        }
+
+        $copia = $this->proyecto->duplicarEn($clase);
+        $this->redirectRoute('proyectos.ver', $copia, navigate: true);
     }
 
     public function borrar(): void
@@ -161,7 +213,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
                     <form wire:submit="ajustar" class="flex flex-1 gap-2">
                         <x-text-input wire:model="ajuste" type="text" class="flex-1" placeholder="Cambia la tarea 4 por algo más manipulativo" :disabled="$proyecto->estaGenerando()" />
-                        <x-primary-button :disabled="$proyecto->estaGenerando()">Aplicar</x-primary-button>
+                        <x-primary-button :disabled="$proyecto->estaGenerando() || ! auth()->user()->puedeGenerar()">Aplicar</x-primary-button>
                     </form>
                 </div>
                 <div class="mt-4 flex flex-wrap gap-2 lg:ps-[15.5rem]">
@@ -170,6 +222,7 @@ new #[Layout('layouts.app')] class extends Component
                     @endforeach
                 </div>
                 <x-input-error class="mt-3" :messages="$errors->get('ajuste')" />
+                <x-limite-uso class="mt-3" />
             </section>
 
             <div>
@@ -249,7 +302,8 @@ new #[Layout('layouts.app')] class extends Component
                                 <dd class="mt-0.5 text-stone-800">{{ $proyecto->clase?->nombre ?? '—' }} · {{ $proyecto->duracion }}</dd>
                             </div>
                         </dl>
-                        <div class="mt-5 border-t border-stone-100 pt-4">
+                        <div class="mt-5 space-y-3 border-t border-stone-100 pt-4">
+                            <x-duplicar :abierto="$duplicando" :clases="$this->clasesDestino" :curso="$proyecto->curso" que="proyecto" />
                             @if ($confirmarBorrado)
                                 <div class="aviso-rojo flex-col animate-aparecer">
                                     <span>¿Borrar este proyecto y todas sus versiones?</span>

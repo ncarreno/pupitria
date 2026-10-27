@@ -58,4 +58,12 @@ class UserFactory extends Factory
     {
         return $this->afterCreating(fn (User $user) => $user->forceFill(['puede_valorar' => true])->save());
     }
+
+    /**
+     * Docente sin límite mensual de generaciones.
+     */
+    public function sinLimite(): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->forceFill(['sin_limite' => true])->save());
+    }
 }

@@ -79,6 +79,12 @@ new #[Layout('layouts.app')] class extends Component
 
     public function crear(): void
     {
+        if (! auth()->user()->puedeGenerar()) {
+            $this->addError('limite', auth()->user()->mensajeLimite());
+
+            return;
+        }
+
         $this->validate([
             'claseId' => ['required', 'integer'],
             'area' => ['required', 'string'],
@@ -204,7 +210,8 @@ new #[Layout('layouts.app')] class extends Component
 
                     <div class="flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 bg-stone-50/60 px-6 py-4 sm:px-8">
                         <span class="inline-flex items-center gap-2 text-sm text-stone-500"><x-icono nombre="reloj" class="size-4" />Tarda entre 30 y 90 segundos.</span>
-                        <x-primary-button wire:loading.attr="disabled" wire:target="crear">
+                        <x-limite-uso />
+                        <x-primary-button wire:loading.attr="disabled" wire:target="crear" :disabled="! auth()->user()->puedeGenerar()">
                             <x-icono nombre="capas" class="size-4" wire:loading.remove wire:target="crear" />
                             <span class="punto-vivo" wire:loading wire:target="crear"></span>
                             Crear ficha en 3 niveles

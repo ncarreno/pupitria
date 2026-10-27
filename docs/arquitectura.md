@@ -23,7 +23,7 @@
 | **Exportación** | Word (.docx) editable y PDF de calidad, con los estilos visuales. |
 | **Biblioteca** | Listado de proyectos y fichas, búsqueda y filtros por área, criterio y curso. |
 | **Administración de IA** | Solo para el administrador: activar proveedores, elegir modelo por tarea, definir el orden de respaldo y ver costes. |
-| **Control de uso** | Registro de cada generación (proveedor, modelo, tokens, duración, errores) para controlar y comparar costes y, más adelante, poner límites al plan gratuito. |
+| **Control de uso** | Registro de cada generación (proveedor, modelo, tokens, duración, errores) para controlar y comparar costes. Límite mensual de generaciones por cuenta (`LIMITE_GENERACIONES_MES`, `User::limiteMensual()`), con cuentas sin límite que marca el administrador; con los planes de pago dependerá del plan. |
 
 ## Proveedores de IA
 
@@ -75,7 +75,7 @@ La **validación curricular es independiente de la IA**: criterios y saberes se 
 - **Una sola normativa.** Las consultas buscan las áreas por `codigo` sin filtrar por normativa, y `competencias_especificas.codigo` es único en toda la tabla. Vale mientras solo esté Asturias (otras comunidades quedan fuera de la v1). Para añadir otra hará falta guardar la normativa en la clase, filtrar por ella y que el código de competencia sea único por área.
 
 **Datos de cada docente**
-- `users`: nombre, email, contraseña, preferencias, rol (docente o administrador).
+- `users`: nombre, email, contraseña, preferencias (estilo de los documentos), rol (docente o administrador), `puede_valorar` y `sin_limite`.
 - `clases` + pivote `area_clase`.
 - `proyectos` (contenido JSON, estado, error, ids descartados) + `proyecto_versiones` + pivotes `criterio_proyecto` y `proyecto_saber`.
 - `fichas`: clase, proyecto y tarea opcionales, área, curso, tema, título, `contenido` (JSON con los 3 niveles), `con_imagen`, `imagen_por`, `imagen`, `prompt_imagen`, estado, error, ids descartados. Pivote `criterio_ficha`.
@@ -117,8 +117,8 @@ La **validación curricular es independiente de la IA**: criterios y saberes se 
 | — | Imágenes con OpenAI (`ClienteIA::generarImagen`) | Hecho |
 | 3 | Fichas en 3 niveles, ilustración con OpenAI o prompt externo | Hecho (en prueba con la beta tester) |
 | 4 | Panel de administración de IA, respaldo, batería de pruebas comparativa, cuentas y administración aparte | Hecho (coste en euros pospuesto) |
-| 5 | Exportación Word y PDF, estilos visuales | **Siguiente** |
-| 6 | Biblioteca, búsqueda, duplicar, control de uso | |
+| 5 | Estilos visuales e impresión en A4 (PDF desde el navegador) | Hecho (Word pospuesto hasta oír a la beta tester) |
+| 6 | Búsqueda y filtros, duplicar, límite mensual de generaciones | Hecho (el límite espera su número) |
 
 **Después de la v1:** currículo de Infantil, estilo propio aprendido de sus ejemplos, preparación de reuniones con familias, programación de aula y planes de pago.
 

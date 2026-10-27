@@ -11,8 +11,8 @@ use Livewire\WithPagination;
 
 /**
  * Cuentas registradas, para el administrador: datos de la cuenta, recuentos de clases,
- * proyectos y fichas (nunca su contenido), los permisos de administrar y de valorar pruebas
- * y el alta de cuentas nuevas.
+ * proyectos y fichas (nunca su contenido), generaciones del mes, los permisos de administrar,
+ * de valorar pruebas y de no tener límite mensual, y el alta de cuentas nuevas.
  */
 new #[Layout('layouts.admin')] class extends Component
 {
@@ -32,6 +32,8 @@ new #[Layout('layouts.admin')] class extends Component
     public bool $administrador = false;
 
     public bool $valorar = false;
+
+    public bool $sinLimite = false;
 
     /** @var array{nombre: string, email: string, password: string}|null Datos de la cuenta recién creada, para pasárselos a la docente. */
     public ?array $creada = null;
@@ -55,7 +57,8 @@ new #[Layout('layouts.admin')] class extends Component
         $buscar = trim($this->buscar);
 
         return User::query()
-            ->withCount(['clases', 'proyectos', 'fichas'])
+            ->withCount(['clases', 'proyectos', 'fichas', 'generaciones as generaciones_mes' => fn ($q) => $q
+                ->whereIn('tarea', User::TAREAS_CON_LIMITE)->where('estado', 'completada')->where('created_at', '>=', now()->startOfMonth())])
             ->when($buscar !== '', fn ($q) => $q->where(fn ($q) => $q
                 ->where('name', 'like', '%'.addcslashes($buscar, '%_\\').'%')
                 ->orWhere('email', 'like', '%'.addcslashes($buscar, '%_\\').'%')))
@@ -67,7 +70,7 @@ new #[Layout('layouts.admin')] class extends Component
     public function nueva(): void
     {
         $this->resetValidation();
-        $this->reset('nombre', 'email', 'administrador', 'valorar', 'creada');
+        $this->reset('nombre', 'email', 'administrador', 'valorar', 'sinLimite', 'creada');
         $this->generarPassword();
         $this->mostrarFormulario = true;
     }
@@ -96,17 +99,18 @@ new #[Layout('layouts.admin')] class extends Component
             'email_verified_at' => now(),
             'rol' => $this->administrador ? 'admin' : 'docente',
             'puede_valorar' => $this->valorar,
+            'sin_limite' => $this->sinLimite,
         ])->save();
 
         $this->creada = ['nombre' => $cuenta->name, 'email' => $cuenta->email, 'password' => $datos['password']];
-        $this->reset('nombre', 'email', 'password', 'administrador', 'valorar', 'mostrarFormulario', 'buscar');
+        $this->reset('nombre', 'email', 'password', 'administrador', 'valorar', 'sinLimite', 'mostrarFormulario', 'buscar');
         $this->resetPage();
     }
 
     public function cancelar(): void
     {
         $this->resetValidation();
-        $this->reset('nombre', 'email', 'password', 'administrador', 'valorar', 'mostrarFormulario');
+        $this->reset('nombre', 'email', 'password', 'administrador', 'valorar', 'sinLimite', 'mostrarFormulario');
     }
 
     public function alternarAdministrador(int $id): void
@@ -126,6 +130,15 @@ new #[Layout('layouts.admin')] class extends Component
     {
         $cuenta = User::findOrFail($id);
         $cuenta->forceFill(['puede_valorar' => ! $cuenta->puede_valorar])->save();
+    }
+
+    /**
+     * Cuentas sin límite mensual de generaciones, como la beta tester.
+     */
+    public function alternarSinLimite(int $id): void
+    {
+        $cuenta = User::findOrFail($id);
+        $cuenta->forceFill(['sin_limite' => ! $cuenta->sin_limite])->save();
     }
 
     /**
@@ -198,6 +211,10 @@ new #[Layout('layouts.admin')] class extends Component
                                 <input type="checkbox" wire:model="valorar" class="casilla">
                                 Valora pruebas: ve y valora la batería de pruebas
                             </label>
+                            <label class="flex items-center gap-2.5">
+                                <input type="checkbox" wire:model="sinLimite" class="casilla">
+                                Sin límite: genera todo lo que quiera cada mes
+                            </label>
                         </div>
                     </fieldset>
                 </div>
@@ -249,6 +266,7 @@ Contraseña: {{ $creada['password'] }}</p>
                         <th class="!text-right">Clases</th>
                         <th class="!text-right">Proyectos</th>
                         <th class="!text-right">Fichas</th>
+                        <th class="!text-right">Este mes</th>
                         <th>Permisos</th>
                     </tr>
                 </thead>
@@ -282,6 +300,7 @@ Contraseña: {{ $creada['password'] }}</p>
                             <td class="cifra text-right">{{ $c->clases_count }}</td>
                             <td class="cifra text-right">{{ $c->proyectos_count }}</td>
                             <td class="cifra text-right">{{ $c->fichas_count }}</td>
+                            <td class="cifra whitespace-nowrap text-right" title="Generaciones completadas este mes">{{ $c->generaciones_mes }}@if ($c->limiteMensual() !== null)<span class="text-stone-400"> / {{ $c->limiteMensual() }}</span>@endif</td>
                             <td class="space-y-2">
                                 <div class="flex flex-wrap gap-1">
                                     @if ($c->esAdministrador())
@@ -290,7 +309,10 @@ Contraseña: {{ $creada['password'] }}</p>
                                     @if ($c->puede_valorar)
                                         <span class="insignia-ambar"><x-icono nombre="estrella" class="size-3" />Valora pruebas</span>
                                     @endif
-                                    @if (! $c->esAdministrador() && ! $c->puede_valorar)
+                                    @if ($c->sin_limite)
+                                        <span class="insignia-pino">Sin límite</span>
+                                    @endif
+                                    @if (! $c->esAdministrador() && ! $c->puede_valorar && ! $c->sin_limite)
                                         <span class="insignia-neutra">Docente</span>
                                     @endif
                                 </div>
@@ -301,12 +323,15 @@ Contraseña: {{ $creada['password'] }}</p>
                                             class="enlace">{{ $c->esAdministrador() ? 'Quitar administrador' : 'Hacer administrador' }}</button>
                                     @endunless
                                     <button type="button" wire:click="alternarValorar({{ $c->id }})" class="enlace">{{ $c->puede_valorar ? 'Quitar permiso de valorar' : 'Dar permiso de valorar' }}</button>
+                                    @unless ($c->esAdministrador())
+                                        <button type="button" wire:click="alternarSinLimite({{ $c->id }})" class="enlace">{{ $c->sin_limite ? 'Poner límite' : 'Quitar límite' }}</button>
+                                    @endunless
                                 </div>
                                 <x-input-error :messages="$errors->get('cuenta.'.$c->id)" />
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="py-10 text-center text-stone-500">No hay cuentas que coincidan.</td></tr>
+                        <tr><td colspan="8" class="py-10 text-center text-stone-500">No hay cuentas que coincidan.</td></tr>
                     @endforelse
                 </tbody>
             </table>

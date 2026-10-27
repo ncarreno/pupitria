@@ -5,6 +5,7 @@ use App\Models\Ficha;
 use App\View\EstilosDocumento;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
@@ -20,6 +21,10 @@ new #[Layout('layouts.app')] class extends Component
     public string $nivel = 'estandar';
 
     public bool $confirmarBorrado = false;
+
+    public bool $duplicando = false;
+
+    public string $claseDestino = '';
 
     /**
      * Textos de la ficha que la docente puede editar a mano (rutas dentro de `contenido`).
@@ -86,6 +91,12 @@ new #[Layout('layouts.app')] class extends Component
     {
         $this->authorize('update', $this->ficha);
 
+        if (! auth()->user()->puedeGenerar()) {
+            $this->addError('limite', auth()->user()->mensajeLimite());
+
+            return;
+        }
+
         if ($this->ficha->estaGenerando()) {
             return;
         }
@@ -127,6 +138,41 @@ new #[Layout('layouts.app')] class extends Component
             Storage::disk('public')->delete($this->ficha->imagen);
             $this->ficha->forceFill(['imagen' => null])->save();
         }
+    }
+
+    /**
+     * Clases a las que se puede duplicar: las de la docente del mismo curso.
+     */
+    #[Computed]
+    public function clasesDestino()
+    {
+        return auth()->user()->clases()->where('curso', $this->ficha->curso)->get();
+    }
+
+    public function abrirDuplicar(): void
+    {
+        $this->claseDestino = (string) ($this->clasesDestino->firstWhere('id', $this->ficha->clase_id)?->id ?? $this->clasesDestino->first()?->id ?? '');
+        $this->resetValidation('claseDestino');
+        $this->duplicando = true;
+    }
+
+    public function duplicar(): void
+    {
+        $this->authorize('view', $this->ficha);
+
+        if (! $this->ficha->contenido || $this->ficha->estaGenerando()) {
+            return;
+        }
+
+        $clase = $this->clasesDestino->firstWhere('id', (int) $this->claseDestino);
+        if (! $clase) {
+            $this->addError('claseDestino', "Elige una de tus clases de {$this->ficha->curso}.º.");
+
+            return;
+        }
+
+        $copia = $this->ficha->duplicarEn($clase);
+        $this->redirectRoute('fichas.ver', $copia, navigate: true);
     }
 
     public function borrar(): void
@@ -254,6 +300,8 @@ new #[Layout('layouts.app')] class extends Component
 
                         <div class="mt-5 space-y-3 border-t border-stone-100 pt-4">
                             <button type="button" wire:click="regenerar" @disabled($ficha->estaGenerando()) class="enlace text-left"><x-icono nombre="refrescar" class="size-4" />Generar de nuevo (sustituye la actual)</button>
+                            <x-limite-uso />
+                            <x-duplicar :abierto="$duplicando" :clases="$this->clasesDestino" :curso="$ficha->curso" que="ficha" />
                             @if ($confirmarBorrado)
                                 <div class="aviso-rojo flex-col animate-aparecer">
                                     <span class="text-red-800">¿Borrar esta ficha?</span>

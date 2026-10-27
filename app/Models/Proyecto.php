@@ -70,6 +70,23 @@ class Proyecto extends Model
     }
 
     /**
+     * Copia el proyecto en otra clase de la misma docente (la llamada comprueba que sea del mismo curso).
+     * Empieza en la versión 1; las fichas no se copian.
+     */
+    public function duplicarEn(Clase $clase): Proyecto
+    {
+        $copia = $this->replicate(['estado', 'error']);
+        $copia->clase()->associate($clase);
+        $copia->forceFill(['estado' => 'listo'])->save();
+
+        $contenido = $this->contenido;
+        $contenido['titulo'] = str(($contenido['titulo'] ?? $this->titulo).' (copia)')->limit(255, '')->toString();
+        $copia->guardarVersion($contenido, 'Copia de «'.$this->titulo.'»');
+
+        return $copia;
+    }
+
+    /**
      * Guarda un contenido nuevo, lo registra como versión y sincroniza criterios y saberes.
      *
      * @param  array<string, mixed>  $contenido
