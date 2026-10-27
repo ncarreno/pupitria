@@ -188,7 +188,8 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
                         <div class="flex flex-wrap items-center gap-3">
                             <x-selector-estilo :actual="$ficha->estilo" />
-                            <x-secondary-button type="button" onclick="window.print()"><x-icono nombre="imprimir" class="size-4" />Imprimir</x-secondary-button>
+                            <a href="{{ route('fichas.imprimir', [$ficha, 'nivel' => $nivel]) }}" target="_blank" class="boton-secundario"><x-icono nombre="imprimir" class="size-4" />Imprimir</a>
+                            <a href="{{ route('fichas.imprimir', [$ficha, 'nivel' => 'todos']) }}" target="_blank" class="boton-secundario">Los 3 niveles</a>
                         </div>
                     </div>
 

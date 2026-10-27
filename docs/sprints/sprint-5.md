@@ -11,6 +11,12 @@
   - Selector "Estilo" (`x-selector-estilo`) en `/fichas/{id}` (junto a Imprimir) y `/proyectos/{id}`; método `cambiarEstilo()` con la policy `update`. El perfil tiene "Estilo de tus documentos" (`profile.update-estilo-form`), que guarda `users.preferencias.estilo`.
   - La batería de pruebas compara siempre con Cuaderno (sus documentos no tienen docente).
   - Tests en `EstilosDocumentoTest` (10).
+- **B. PDF desde el navegador** (decisión de Nacho, 27 oct: no instalar nada en el servidor, así que nada de Chromium). Páginas de impresión con solo el documento en A4 (`ImpresionController`, componente `x-impresion`, vistas `impresion/`), que abren el diálogo de imprimir; desde ahí se guarda como PDF.
+  - `GET /proyectos/{proyecto}/imprimir` y `GET /fichas/{ficha}/imprimir?nivel=` (un nivel, o `todos`: los tres, cada uno en su hoja). Middleware `can:view`. Lo que está en `generando` o sin contenido vuelve a su página.
+  - Botones "Imprimir" (y "Los 3 niveles" en fichas) que abren la página en otra pestaña.
+  - CSS de impresión al final de `documentos.css`: `@page` A4 con 12 mm, el proyecto a dos columnas, secciones sin partir y `print-color-adjust: exact` para que salgan pautas y colores. Las reglas de móvil son solo `screen`, porque una A4 impresa mide unos 720 px.
+  - Tests en `ImpresionTest` (7).
+  - Si hace falta un botón de descarga directa, `dompdf` (paquete de Composer, sin instalar nada en el servidor) con una maqueta más sencilla, porque no entiende CSS grid.
 - **Pendiente de A:** fuentes en local (`public/fonts`) para el PDF; de momento siguen en Bunny Fonts. En A4 el proyecto tendrá que pasar a dos columnas (la rejilla de 12 deja secciones de unos 150 px); se hará con el PDF.
 
 ## Objetivo
@@ -23,8 +29,7 @@ Que la docente se lleve el proyecto y las fichas fuera de la app: un **Word que 
 - No están instalados ni PhpWord ni ningún paquete de PDF.
 
 ## Antes de empezar
-- **Chromium en el servidor Plesk:** comprobar si se pueden instalar Chromium y Node. De eso depende el motor de PDF (ver B).
-- **Aprobar las dependencias nuevas:** `phpoffice/phpword` y `spatie/laravel-pdf` (o la alternativa de B).
+- **Aprobar la dependencia nueva para el Word:** `phpoffice/phpword` (paquete de Composer; no instala nada en el servidor).
 - **Preguntar a la beta tester:**
   - ¿Retoca en Word lo que saca o lo imprime tal cual?
   - ¿Imprime los tres niveles de una ficha a la vez?
@@ -74,7 +79,7 @@ Que la docente se lleve el proyecto y las fichas fuera de la app: un **Word que 
   - Un tema que no existe se rechaza.
 
 ## Por decidir
-- Motor de PDF, según lo que permita el servidor.
+- Si la impresión desde el navegador basta o hace falta descarga directa con `dompdf`.
 - En el PDF de una ficha: ¿por defecto un nivel o los tres?
 - Fuentes en Word.
 - Orden del proyecto en Word: el de la pantalla o el formato del centro.

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ImpresionController;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
@@ -18,9 +19,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Volt::route('proyectos', 'pages.proyectos.index')->name('proyectos');
     Volt::route('proyectos/nuevo', 'pages.proyectos.nuevo')->name('proyectos.nuevo');
     Volt::route('proyectos/{proyecto}', 'pages.proyectos.ver')->name('proyectos.ver');
+    Route::get('proyectos/{proyecto}/imprimir', [ImpresionController::class, 'proyecto'])->middleware('can:view,proyecto')->name('proyectos.imprimir');
     Volt::route('fichas', 'pages.fichas.index')->name('fichas');
     Volt::route('fichas/nueva', 'pages.fichas.nueva')->name('fichas.nueva');
     Volt::route('fichas/{ficha}', 'pages.fichas.ver')->name('fichas.ver');
+    Route::get('fichas/{ficha}/imprimir', [ImpresionController::class, 'ficha'])->middleware('can:view,ficha')->name('fichas.imprimir');
     Volt::route('curriculo', 'pages.curriculo')->name('curriculo');
 });
 

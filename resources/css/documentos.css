@@ -44,11 +44,12 @@
 .hoja-ficha .rel .p i{width:9px;height:9px;border-radius:50%;background:currentColor;display:block}
 .hoja-ficha .dibujo{height:190px;border:2px dashed currentColor;margin-top:8px}
 .hoja-ficha .pie{font-size:11px;opacity:.7;margin-top:6px}
-@media (max-width:640px){.hoja-ficha{padding:18px}.hoja-ficha h1{font-size:28px}}
+@media screen and (max-width:640px){.hoja-ficha{padding:18px}.hoja-ficha h1{font-size:28px}}
+/* Si la docente imprime /fichas/{id} con Ctrl+P en lugar de usar la página de impresión, sale solo la hoja. */
 @media print{
-    body *{visibility:hidden}
-    .hoja-ficha,.hoja-ficha *{visibility:visible}
-    .hoja-ficha{position:absolute;left:0;top:0;width:100%;max-width:none;padding:0}
+    body:not(.impresion) *{visibility:hidden}
+    body:not(.impresion) .hoja-ficha,body:not(.impresion) .hoja-ficha *{visibility:visible}
+    body:not(.impresion) .hoja-ficha{position:absolute;left:0;top:0;width:100%;max-width:none;padding:0}
     .hoja-ficha [contenteditable]:hover,.hoja-ficha [contenteditable]:focus{box-shadow:none}
 }
 
@@ -80,7 +81,7 @@
 .doc-proyecto th,.doc-proyecto td{border:1px solid #9fb6d9;padding:5px 6px;text-align:left;vertical-align:top}
 .doc-proyecto .verif{font-size:10.5px;margin-top:6px;color:#1d6b35}
 .doc-proyecto .c3{grid-column:span 3}.doc-proyecto .c4{grid-column:span 4}.doc-proyecto .c5{grid-column:span 5}.doc-proyecto .c8{grid-column:span 8}.doc-proyecto .c12{grid-column:span 12}
-@media (max-width:860px){.doc-proyecto{padding:18px 16px 22px}.doc-proyecto .rejilla{grid-template-columns:minmax(0,1fr)}.doc-proyecto .rejilla>*{grid-column:1/-1}.doc-proyecto .tareas{grid-template-columns:1fr}.doc-proyecto .titulo{font-size:34px}}
+@media screen and (max-width:860px){.doc-proyecto{padding:18px 16px 22px}.doc-proyecto .rejilla{grid-template-columns:minmax(0,1fr)}.doc-proyecto .rejilla>*{grid-column:1/-1}.doc-proyecto .tareas{grid-template-columns:1fr}.doc-proyecto .titulo{font-size:34px}}
 
 /* ---------- Cuaderno: cuadrícula, margen rojo y tarjetas con sombra (solo el proyecto; la ficha es la base) ---------- */
 .t-cuaderno{--tinta:#1f2a44;--f-titulo:"Kalam",cursive}
@@ -89,7 +90,7 @@
 .doc-proyecto.t-cuaderno .titulo span{background:linear-gradient(transparent 58%,#ffe066 58%)}
 .doc-proyecto.t-cuaderno .s{background:rgba(255,255,255,.9);box-shadow:3px 3px 0 var(--tinta)}
 .doc-proyecto.t-cuaderno .s:nth-child(3n+2) h3{color:var(--acento2)}
-@media (max-width:860px){.doc-proyecto.t-cuaderno{padding-left:54px}.doc-proyecto.t-cuaderno::before{left:30px}}
+@media screen and (max-width:860px){.doc-proyecto.t-cuaderno{padding-left:54px}.doc-proyecto.t-cuaderno::before{left:30px}}
 
 /* ---------- Caligrafía: pauta de cuadernillo para escribir y actividades numeradas en círculo ---------- */
 .t-caligrafia{--tinta:#2a2724;--acento:#b5443b;--acento2:#b5443b;--papel:#fff;--guia:#9db3d6;--f-titulo:"Playwrite ES","Kalam",cursive;--f-texto:"Andika",ui-sans-serif,system-ui,sans-serif;
@@ -123,7 +124,7 @@
 .doc-proyecto.t-caligrafia .tarea .n{background:none;border:1.5px solid var(--acento);color:var(--acento);line-height:19px}
 .doc-proyecto.t-caligrafia .ods span.num{background:none;border:1.5px solid var(--tinta);color:var(--tinta);border-radius:4px}
 .doc-proyecto.t-caligrafia th,.doc-proyecto.t-caligrafia td{border-color:var(--guia)}
-@media (max-width:860px){.doc-proyecto.t-caligrafia{padding:18px 16px 22px}.doc-proyecto.t-caligrafia .titulo{font-size:30px}}
+@media screen and (max-width:860px){.doc-proyecto.t-caligrafia{padding:18px 16px 22px}.doc-proyecto.t-caligrafia .titulo{font-size:30px}}
 
 /* ---------- Cartulina: piezas recortadas con borde grueso, sombra naranja y números grandes ---------- */
 .t-cartulina{--tinta:#2b2622;--acento:#e27a3f;--acento2:#e27a3f;--acento-claro:#fbe3d3;--acento-oscuro:#a8501f;--papel:#fff;--f-titulo:"Baloo 2",ui-sans-serif,system-ui,sans-serif;--f-texto:"Nunito",ui-sans-serif,system-ui,sans-serif}
@@ -168,7 +169,7 @@
 .doc-proyecto.t-cartulina .ods span.num{background:var(--acento-claro);color:var(--tinta);border:2px solid var(--tinta);border-radius:8px}
 .doc-proyecto.t-cartulina th{background:var(--acento-claro)}
 .doc-proyecto.t-cartulina th,.doc-proyecto.t-cartulina td{border:1.5px solid var(--tinta)}
-@media (max-width:860px){.doc-proyecto.t-cartulina{padding:18px 16px 22px}.doc-proyecto.t-cartulina .titulo{font-size:36px}}
+@media screen and (max-width:860px){.doc-proyecto.t-cartulina{padding:18px 16px 22px}.doc-proyecto.t-cartulina .titulo{font-size:36px}}
 
 /* ---------- Esencial: líneas finas, números huecos y nada de relleno, para gastar poca tinta ---------- */
 .t-esencial{--tinta:#1f1f1f;--acento:#1f1f1f;--acento2:#1f1f1f;--gris:#8a8a8a;--papel:#fff;--f-titulo:"Archivo",ui-sans-serif,system-ui,sans-serif;--f-texto:"Archivo",ui-sans-serif,system-ui,sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,monospace}
@@ -192,7 +193,7 @@
 .hoja-ficha.t-esencial .rel .p i{width:6px;height:6px}
 .hoja-ficha.t-esencial .dibujo{border:1px dashed var(--tinta)}
 .hoja-ficha.t-esencial .pie{font-family:var(--f-mono);font-size:10px;opacity:1}
-@media (max-width:640px){.hoja-ficha.t-esencial .b{padding-left:44px}.hoja-ficha.t-esencial .b:not(.b-lectura)::before{font-size:36px}}
+@media screen and (max-width:640px){.hoja-ficha.t-esencial .b{padding-left:44px}.hoja-ficha.t-esencial .b:not(.b-lectura)::before{font-size:36px}}
 .doc-proyecto.t-esencial{font-size:13px;padding:30px 34px 34px}
 .doc-proyecto.t-esencial .titulo{font-weight:800;font-size:40px;letter-spacing:-.025em}
 .doc-proyecto.t-esencial .lema{font-family:var(--f-texto);font-size:15px;color:#4a4a4a;margin:6px 0 16px}
@@ -209,4 +210,28 @@
 .doc-proyecto.t-esencial .ods span.num{background:none;border:1px solid var(--tinta);color:var(--tinta);font-family:var(--f-mono)}
 .doc-proyecto.t-esencial th,.doc-proyecto.t-esencial td{border-color:var(--tinta)}
 .doc-proyecto.t-esencial .verif{color:var(--tinta);font-family:var(--f-mono);font-size:9.5px}
-@media (max-width:860px){.doc-proyecto.t-esencial{padding:18px 16px 22px}.doc-proyecto.t-esencial .meta{grid-template-columns:minmax(0,1fr)}.doc-proyecto.t-esencial .meta div{border-right:0;padding-left:0}}
+@media screen and (max-width:860px){.doc-proyecto.t-esencial{padding:18px 16px 22px}.doc-proyecto.t-esencial .meta{grid-template-columns:minmax(0,1fr)}.doc-proyecto.t-esencial .meta div{border-right:0;padding-left:0}}
+
+/* ---------- Página de impresión (ImpresionController): hojas A4 en pantalla y en papel ---------- */
+@page{size:A4;margin:12mm}
+.impresion{background:#e7e5e4}
+.impresion .barra-impresion{position:sticky;top:0;z-index:10;background:rgba(250,250,249,.92);backdrop-filter:blur(8px);border-bottom:1px solid #d6d3d1}
+.impresion .hojas{display:grid;gap:24px;justify-items:center;padding:24px 16px 48px}
+.impresion .hoja-ficha,.impresion .doc-proyecto{width:210mm;max-width:100%;min-height:297mm;margin:0;padding:12mm;box-shadow:0 1px 1px rgba(41,37,36,.06),0 18px 40px -20px rgba(41,37,36,.35);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.impresion .doc-proyecto{font-size:12px}
+.impresion .doc-proyecto .titulo{font-size:36px}
+.impresion .doc-proyecto .rejilla{grid-template-columns:repeat(2,minmax(0,1fr))}
+.impresion .doc-proyecto .rejilla>*{grid-column:auto}
+.impresion .doc-proyecto .rejilla>.c8,.impresion .doc-proyecto .rejilla>.c12{grid-column:1/-1}
+.impresion .doc-proyecto .s{break-inside:avoid}
+.impresion .doc-proyecto.t-cuaderno{padding-left:22mm}
+.impresion .doc-proyecto.t-cuaderno::before{left:14mm}
+@media print{
+    .impresion{background:none}
+    .impresion .barra-impresion{display:none}
+    .impresion .hojas{display:block;padding:0}
+    .impresion .hoja-ficha,.impresion .doc-proyecto{width:auto;min-height:0;padding:0;box-shadow:none}
+    .impresion .doc-proyecto.t-cuaderno{padding-left:12mm}
+    .impresion .doc-proyecto.t-cuaderno::before{left:5mm}
+    .impresion .hoja-ficha+.hoja-ficha{break-before:page}
+}

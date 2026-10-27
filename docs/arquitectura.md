@@ -91,14 +91,14 @@ La **validación curricular es independiente de la IA**: criterios y saberes se 
 
 ## Exportación (sprint 5)
 - **Word (.docx):** PhpWord con plantillas por tipo de documento.
-- **PDF:** `spatie/laravel-pdf` (o Browsershot) con las mismas vistas Blade que la pantalla. Requiere Chromium en el servidor.
+- **PDF:** desde el navegador de la docente ("Guardar como PDF") con páginas de impresión A4 que usan los mismos componentes que la pantalla (`ImpresionController`). Sin Chromium ni nada instalado en el servidor (decisión del 27 oct). Si hace falta descarga directa, `dompdf` con una maqueta propia.
 - **4 estilos visuales** (Cuaderno, Caligrafía, Cartulina y Esencial) como clases `t-{estilo}` en `resources/css/documentos.css`, compartidos entre pantalla y PDF. Catálogo en `App\View\EstilosDocumento`; cada proyecto y ficha puede tener el suyo, y si no, usa el del perfil de la docente.
 - Plan detallado en [sprints/sprint-5.md](sprints/sprint-5.md).
 
 ## Despliegue en Plesk
 - PHP 8.4+ con FPM, MySQL/MariaDB y HTTPS.
 - **Cola:** worker con Supervisor si hay root; si no, tarea programada de Plesk cada minuto con `queue:work --stop-when-empty`. Como puede haber varios workers a la vez, `retry_after` de la cola `database` (460 s, `DB_QUEUE_RETRY_AFTER`) debe ser mayor que el timeout más largo de los jobs; si no, otro worker coge un job que sigue en marcha y lo da por fallido.
-- `php artisan storage:link`. Chromium para los PDF.
+- `php artisan storage:link`.
 - Claves de los proveedores activos (Anthropic y OpenAI como mínimo).
 - Copias diarias de la base de datos y de `storage/app/public`.
 - Cloudflare delante.

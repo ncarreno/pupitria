@@ -173,8 +173,9 @@ new #[Layout('layouts.app')] class extends Component
             </section>
 
             <div>
-                <div class="mb-3 flex justify-end">
+                <div class="mb-3 flex flex-wrap items-center justify-end gap-3">
                     <x-selector-estilo :actual="$proyecto->estilo" />
+                    <a href="{{ route('proyectos.imprimir', $proyecto) }}" target="_blank" class="boton-secundario"><x-icono nombre="imprimir" class="size-4" />Imprimir</a>
                 </div>
                 <div class="overflow-x-auto rounded-2xl shadow-papel ring-1 ring-stone-200">
                     <x-proyecto.documento :proyecto="$proyecto" :editable="! $proyecto->estaGenerando()" wire:key="doc-{{ $proyecto->updated_at?->timestamp }}" />
