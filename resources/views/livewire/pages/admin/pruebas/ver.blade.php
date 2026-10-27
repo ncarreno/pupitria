@@ -14,7 +14,7 @@ use Livewire\Volt\Component;
  * Comparación a ciegas de un caso: la última ejecución de cada proveedor, como A, B, C…, con los
  * mismos componentes que ve la docente. Los proveedores se muestran cuando quien mira ha valorado todas.
  */
-new #[Layout('layouts.app')] class extends Component
+new #[Layout('layouts.admin')] class extends Component
 {
     public IaCaso $caso;
 
@@ -115,129 +115,156 @@ new #[Layout('layouts.app')] class extends Component
         $actual = $this->ejecuciones[$opcion] ?? null;
     @endphp
 
-    <x-slot name="header">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ $caso->nombre }}</h2>
-                <p class="text-sm text-gray-500 mt-1">
-                    @if ($this->aCiegas)
-                        A ciegas: los proveedores se muestran cuando hayas valorado todas las opciones.
-                    @else
-                        Ya has valorado todas las opciones: se muestran los proveedores.
-                    @endif
-                </p>
-            </div>
-            <a href="{{ route('admin.pruebas') }}" wire:navigate class="text-sm text-indigo-700 hover:underline">Todos los casos</a>
-        </div>
-    </x-slot>
+    {{-- Cabecera dentro del componente: el aviso de "a ciegas" cambia al valorar. --}}
+    <div class="contenedor pb-8 pt-8 lg:pt-12">
+        <x-cabecera antetitulo="Batería de pruebas" :titulo="$caso->nombre" :volver="route('admin.pruebas')" volver-texto="Todos los casos">
+            <span class="inline-flex items-center gap-2">
+                <x-icono :nombre="$this->aCiegas ? 'ojo-tachado' : 'ojo'" class="size-4 text-pino-700" />
+                @if ($this->aCiegas)
+                    A ciegas: los proveedores se muestran cuando hayas valorado todas las opciones.
+                @else
+                    Ya has valorado todas las opciones: se muestran los proveedores.
+                @endif
+            </span>
+        </x-cabecera>
+    </div>
 
-    <div class="py-8">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
-            <section class="bg-white shadow-sm sm:rounded-lg p-4 text-sm text-gray-700">
-                <span class="font-medium">Lo que se pide:</span>
+    <div class="contenedor space-y-5">
+        <section class="tarjeta flex gap-3 p-5 text-sm text-stone-700">
+            <x-icono nombre="chispa" class="mt-0.5 size-[18px] text-pino-700" />
+            <p>
+                <span class="font-medium text-stone-950">Lo que se pide:</span>
                 {{ $caso->entrada['idea'] ?? $caso->entrada['tema'] ?? '' }}
                 · {{ $caso->entrada['curso'] }}.º
                 @if ($caso->tarea === 'proyecto') · {{ $caso->entrada['duracion'] ?? '' }} · {{ ($caso->entrada['tipo'] ?? 'aula') === 'centro' ? 'Centro' : 'Aula' }} @endif
-            </section>
+            </p>
+        </section>
 
-            @if ($this->ejecuciones->isEmpty())
-                <div class="bg-white shadow-sm sm:rounded-lg p-6 text-sm text-gray-600">Este caso todavía no se ha lanzado.</div>
-            @else
-                <div class="bg-white shadow-sm sm:rounded-lg overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead class="text-left text-xs uppercase tracking-wide text-gray-500">
-                            <tr>
-                                <th class="px-4 py-2">Opción</th>
-                                @unless ($this->aCiegas)<th class="px-4 py-2">Proveedor y modelo</th>@endunless
-                                <th class="px-4 py-2">Estado</th>
-                                <th class="px-4 py-2 text-right">Duración</th>
-                                <th class="px-4 py-2 text-right">Tokens</th>
-                                <th class="px-4 py-2 text-right">Ids descartados</th>
-                                <th class="px-4 py-2">{{ $this->aCiegas ? 'Tu valoración' : 'Valoraciones' }}</th>
+        @if ($this->ejecuciones->isEmpty())
+            <x-estado-vacio icono="matraz" titulo="Sin resultados">Este caso todavía no se ha lanzado.</x-estado-vacio>
+        @else
+            <div class="tarjeta overflow-x-auto">
+                <table class="tabla">
+                    <thead>
+                        <tr>
+                            <th>Opción</th>
+                            @unless ($this->aCiegas)<th>Proveedor y modelo</th>@endunless
+                            <th>Estado</th>
+                            <th class="!text-right">Duración</th>
+                            <th class="!text-right">Tokens</th>
+                            <th class="!text-right">Ids descartados</th>
+                            <th>{{ $this->aCiegas ? 'Tu valoración' : 'Valoraciones' }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($this->ejecuciones as $i => $e)
+                            <tr wire:key="fila-{{ $e->id }}" @class(['!bg-pino-50/60' => $i === $opcion])>
+                                <td>
+                                    <button type="button" wire:click="verOpcion({{ $i }})" @class([
+                                        'inline-flex size-8 items-center justify-center rounded-lg text-sm font-semibold transition',
+                                        'bg-pino-700 text-white shadow-sm' => $i === $opcion,
+                                        'bg-white text-stone-700 ring-1 ring-stone-300 hover:ring-pino-600 hover:text-pino-800' => $i !== $opcion,
+                                    ])>{{ $this->letra($i) }}</button>
+                                </td>
+                                @unless ($this->aCiegas)<td>{{ $e->proveedor }} <span class="font-mono text-xs text-stone-500">{{ $e->generacion?->modelo ?? $e->modelo }}</span></td>@endunless
+                                <td>
+                                    <span @class([
+                                        'insignia',
+                                        'bg-pino-50 text-pino-800 ring-pino-200' => $e->estaPendiente() || $e->estado === 'completada',
+                                        'bg-red-50 text-red-700 ring-red-200' => $e->estado === 'fallida',
+                                    ])>
+                                        @if ($e->estaPendiente())<span class="punto-vivo size-1.5"></span>@endif
+                                        {{ ['pendiente' => 'generando', 'completada' => 'lista', 'fallida' => 'fallida'][$e->estado] ?? $e->estado }}
+                                    </span>
+                                </td>
+                                <td class="cifra whitespace-nowrap text-right">{{ $e->generacion?->duracion_ms ? number_format($e->generacion->duracion_ms / 1000, 1, ',', '.').' s' : '—' }}</td>
+                                <td class="cifra whitespace-nowrap text-right">{{ $e->generacion ? number_format((int) $e->generacion->tokens_entrada, 0, ',', '.').' / '.number_format((int) $e->generacion->tokens_salida, 0, ',', '.') : '—' }}</td>
+                                <td class="cifra text-right">{{ $e->generacion?->ids_descartados ?? '—' }}</td>
+                                <td>
+                                    @if ($this->aCiegas)
+                                        <span class="cifra">{{ $e->valoracionDe(auth()->user())?->puntuacion ?? '—' }}</span>
+                                    @else
+                                        {{ $e->valoraciones->map(fn ($v) => $v->puntuacion.' ('.$v->user->name.')')->implode(' · ') ?: '—' }}
+                                    @endif
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            @foreach ($this->ejecuciones as $i => $e)
-                                <tr wire:key="fila-{{ $e->id }}" @class(['bg-indigo-50' => $i === $opcion])>
-                                    <td class="px-4 py-2"><button type="button" wire:click="verOpcion({{ $i }})" class="font-semibold text-indigo-700 hover:underline">{{ $this->letra($i) }}</button></td>
-                                    @unless ($this->aCiegas)<td class="px-4 py-2">{{ $e->proveedor }} <span class="text-gray-500">{{ $e->generacion?->modelo ?? $e->modelo }}</span></td>@endunless
-                                    <td class="px-4 py-2">
-                                        <span @class(['text-indigo-700' => $e->estaPendiente(), 'text-red-700' => $e->estado === 'fallida'])>{{ ['pendiente' => 'generando', 'completada' => 'lista', 'fallida' => 'fallida'][$e->estado] ?? $e->estado }}</span>
-                                    </td>
-                                    <td class="px-4 py-2 text-right whitespace-nowrap">{{ $e->generacion?->duracion_ms ? number_format($e->generacion->duracion_ms / 1000, 1, ',', '.').' s' : '—' }}</td>
-                                    <td class="px-4 py-2 text-right whitespace-nowrap">{{ $e->generacion ? number_format((int) $e->generacion->tokens_entrada, 0, ',', '.').' / '.number_format((int) $e->generacion->tokens_salida, 0, ',', '.') : '—' }}</td>
-                                    <td class="px-4 py-2 text-right">{{ $e->generacion?->ids_descartados ?? '—' }}</td>
-                                    <td class="px-4 py-2">
-                                        @if ($this->aCiegas)
-                                            {{ $e->valoracionDe(auth()->user())?->puntuacion ?? '—' }}
-                                        @else
-                                            {{ $e->valoraciones->map(fn ($v) => $v->puntuacion.' ('.$v->user->name.')')->implode(' · ') ?: '—' }}
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
 
-                @if ($actual)
-                    <section wire:key="opcion-{{ $actual->id }}" class="space-y-4">
-                        <div class="flex flex-wrap items-center justify-between gap-3">
-                            <h3 class="font-semibold text-gray-900">Opción {{ $this->letra($opcion) }}</h3>
-                            @if ($caso->tarea === 'ficha' && $actual->estado === 'completada')
-                                <div class="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden" role="group" aria-label="Nivel">
-                                    @foreach (\App\Models\Ficha::NIVELES as $clave => $nombre)
-                                        <button type="button" wire:click="verNivel('{{ $clave }}')" aria-pressed="{{ $nivel === $clave ? 'true' : 'false' }}"
-                                            class="px-4 py-2 text-sm {{ $nivel === $clave ? 'bg-gray-800 text-white font-semibold' : 'text-gray-700 hover:bg-gray-50' }}">{{ $nombre }}</button>
-                                    @endforeach
-                                </div>
-                            @endif
-                        </div>
+            @if ($actual)
+                <section wire:key="opcion-{{ $actual->id }}" class="space-y-5">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <h3 class="flex items-center gap-3 text-lg font-semibold tracking-tight text-stone-950">
+                            <span class="inline-flex size-9 items-center justify-center rounded-xl bg-stone-900 text-sm text-white">{{ $this->letra($opcion) }}</span>
+                            Opción {{ $this->letra($opcion) }}
+                        </h3>
+                        @if ($caso->tarea === 'ficha' && $actual->estado === 'completada')
+                            <div class="segmentado" role="group" aria-label="Nivel">
+                                @foreach (\App\Models\Ficha::NIVELES as $clave => $nombre)
+                                    <button type="button" wire:click="verNivel('{{ $clave }}')" aria-pressed="{{ $nivel === $clave ? 'true' : 'false' }}"
+                                        @class(['segmento', 'segmento-activo' => $nivel === $clave])>{{ $nombre }}</button>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
 
-                        @if ($actual->estaPendiente())
-                            <div class="bg-indigo-50 text-indigo-900 sm:rounded-lg p-4 text-sm">Generando… Esta página se actualiza sola.</div>
-                        @elseif ($actual->estado === 'fallida')
-                            <div class="bg-red-50 text-red-800 sm:rounded-lg p-4 text-sm">
+                    @if ($actual->estaPendiente())
+                        <div class="aviso-pino items-center"><span class="punto-vivo text-pino-600"></span>Generando… Esta página se actualiza sola.</div>
+                    @elseif ($actual->estado === 'fallida')
+                        <div class="aviso-rojo">
+                            <x-icono nombre="aviso" class="size-5 text-red-700" />
+                            <p>
                                 Esta opción ha fallado.
                                 @unless ($this->aCiegas) {{ $actual->error }} @endunless
+                            </p>
+                        </div>
+                    @else
+                        <div class="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+                            <div class="min-w-0 rounded-[1.75rem] bg-stone-200/50 p-3 ring-1 ring-inset ring-stone-200 sm:p-6 xl:order-1">
+                                <div class="overflow-x-auto rounded-sm shadow-papel">
+                                    @if ($caso->tarea === 'ficha')
+                                        <x-ficha.hoja :ficha="$bateria->ficha($caso, $actual->resultado)" :nivel="$nivel" wire:key="hoja-{{ $actual->id }}-{{ $nivel }}" />
+                                    @else
+                                        <x-proyecto.documento :proyecto="$bateria->proyecto($caso, $actual->resultado, (int) $actual->generacion?->ids_descartados)" wire:key="doc-{{ $actual->id }}" />
+                                    @endif
+                                </div>
                             </div>
-                        @else
-                            <form wire:submit="valorar({{ $actual->id }})" class="bg-white shadow-sm sm:rounded-lg p-4 space-y-3">
+
+                            <form wire:submit="valorar({{ $actual->id }})" class="tarjeta space-y-5 p-5 xl:sticky xl:top-6 xl:order-2">
                                 <fieldset>
-                                    <legend class="text-sm font-medium text-gray-700">Tu valoración de la opción {{ $this->letra($opcion) }}</legend>
-                                    <div class="mt-2 flex flex-wrap gap-2">
+                                    <legend class="text-sm font-semibold text-stone-950">Tu valoración de la opción {{ $this->letra($opcion) }}</legend>
+                                    <div class="mt-3 grid grid-cols-5 gap-1.5">
                                         @foreach (range(1, 5) as $n)
-                                            <label class="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm cursor-pointer {{ (int) ($puntuaciones[$actual->id] ?? 0) === $n ? 'border-indigo-500 bg-indigo-50 text-indigo-800' : 'border-gray-300 text-gray-700' }}">
-                                                <input type="radio" wire:model.live="puntuaciones.{{ $actual->id }}" value="{{ $n }}" class="border-gray-300 text-indigo-600">
+                                            @php $elegida = (int) ($puntuaciones[$actual->id] ?? 0) === $n; @endphp
+                                            <label @class([
+                                                'cifra flex h-11 cursor-pointer items-center justify-center rounded-xl text-base font-medium ring-1 ring-inset transition duration-200 ease-suave has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-pino-600 active:scale-95',
+                                                'bg-pino-700 text-white ring-pino-700 shadow-sm' => $elegida,
+                                                'bg-white text-stone-700 ring-stone-300 hover:ring-stone-400' => ! $elegida,
+                                            ])>
+                                                <input type="radio" wire:model.live="puntuaciones.{{ $actual->id }}" value="{{ $n }}" class="sr-only">
                                                 {{ $n }}
                                             </label>
                                         @endforeach
                                     </div>
-                                    <p class="mt-1 text-xs text-gray-500">1 = no la usaría · 5 = la usaría tal cual.</p>
-                                    <x-input-error :messages="$errors->get('puntuaciones.'.$actual->id)" />
+                                    <p class="mt-2 flex justify-between text-xs text-stone-500"><span>1 = no la usaría</span><span>5 = la usaría tal cual</span></p>
+                                    <x-input-error class="mt-2" :messages="$errors->get('puntuaciones.'.$actual->id)" />
                                 </fieldset>
-                                <div>
+                                <div class="grid gap-2">
                                     <x-input-label :for="'nota-'.$actual->id" value="Nota (opcional)" />
-                                    <textarea wire:model="notas.{{ $actual->id }}" id="nota-{{ $actual->id }}" rows="2" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm text-sm" placeholder="Qué te ha gustado o qué cambiarías"></textarea>
+                                    <textarea wire:model="notas.{{ $actual->id }}" id="nota-{{ $actual->id }}" rows="3" class="campo" placeholder="Qué te ha gustado o qué cambiarías"></textarea>
                                     <x-input-error :messages="$errors->get('notas.'.$actual->id)" />
                                 </div>
-                                <div class="flex items-center gap-3">
-                                    <x-primary-button>Guardar valoración</x-primary-button>
-                                    <x-action-message on="valoracion-guardada" class="text-sm text-green-700">Guardada.</x-action-message>
+                                <div class="flex flex-wrap items-center gap-3">
+                                    <x-primary-button class="flex-1">Guardar valoración</x-primary-button>
+                                    <x-action-message on="valoracion-guardada">Guardada.</x-action-message>
                                 </div>
                             </form>
-
-                            <div class="overflow-x-auto shadow-sm sm:rounded-lg">
-                                @if ($caso->tarea === 'ficha')
-                                    <x-ficha.hoja :ficha="$bateria->ficha($caso, $actual->resultado)" :nivel="$nivel" wire:key="hoja-{{ $actual->id }}-{{ $nivel }}" />
-                                @else
-                                    <x-proyecto.documento :proyecto="$bateria->proyecto($caso, $actual->resultado, (int) $actual->generacion?->ids_descartados)" wire:key="doc-{{ $actual->id }}" />
-                                @endif
-                            </div>
-                        @endif
-                    </section>
-                @endif
+                        </div>
+                    @endif
+                </section>
             @endif
-        </div>
+        @endif
     </div>
 </div>

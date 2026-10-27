@@ -33,11 +33,11 @@ class AdminIATest extends TestCase
         $docente = User::factory()->create();
         $admin = User::factory()->admin()->create();
 
-        $this->actingAs($docente)->get(route('admin.ia'))->assertForbidden();
-        $this->actingAs($docente)->get(route('dashboard'))->assertOk()->assertDontSee(route('admin.ia'));
+        $this->actingAs($docente)->get(route('admin.ia'))->assertRedirect(route('admin.login'));
+        $this->actingAs($docente)->get(route('dashboard'))->assertOk()->assertDontSee(route('admin.inicio'));
 
         $this->actingAs($admin)->get(route('admin.ia'))->assertOk()->assertSee('Ajustes de proyectos');
-        $this->actingAs($admin)->get(route('dashboard'))->assertOk()->assertSee(route('admin.ia'));
+        $this->actingAs($admin)->get(route('dashboard'))->assertOk()->assertSee(route('admin.inicio'));
     }
 
     public function test_una_docente_no_puede_usar_las_acciones_del_panel(): void
@@ -99,9 +99,29 @@ class AdminIATest extends TestCase
         $this->assertSame(200, $fila->fresh()->timeout);
     }
 
+    public function test_el_panel_ofrece_los_modelos_del_proveedor_y_se_usa_el_elegido(): void
+    {
+        $fila = $this->fila('prueba', 'anthropic');
+        $this->assertSame(
+            ['claude-haiku-5-5' => 'económico', 'claude-sonnet-5-5' => 'por defecto', 'claude-opus-5-5' => 'el más potente'],
+            IaConfiguracion::modelosPara('prueba', 'anthropic'),
+        );
+
+        Volt::actingAs(User::factory()->admin()->create())->test('pages.admin.ia')
+            ->assertSee('Por defecto (claude-sonnet-5-5)')
+            ->assertSee('claude-haiku-5-5 · económico')
+            ->set("modelos.{$fila->id}", 'claude-haiku-5-5')
+            ->call('guardar', $fila->id)
+            ->assertHasNoErrors();
+
+        StructuredAnonymousAgent::fake([['titulo' => 'Ríos de Asturias']]);
+        $r = app(ClienteIA::class)->generarEstructurado('prueba', 'x', 'y', fn (JsonSchema $s) => ['titulo' => $s->string()->required()]);
+        $this->assertSame('claude-haiku-5-5', $r['generacion']->modelo);
+    }
+
     public function test_solo_el_administrador_ve_el_uso(): void
     {
-        $this->actingAs(User::factory()->create())->get(route('admin.ia.uso'))->assertForbidden();
+        $this->actingAs(User::factory()->create())->get(route('admin.ia.uso'))->assertRedirect(route('admin.login'));
         $this->actingAs(User::factory()->admin()->create())->get(route('admin.ia.uso'))->assertOk()->assertSee('Uso de la IA');
     }
 

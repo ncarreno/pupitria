@@ -10,6 +10,7 @@ App Laravel para que docentes de Primaria (piloto en Asturias) generen proyectos
 
 ## Comandos
 - `composer run dev`: `artisan serve`, Vite, worker de la cola y logs (`pail`). Sin la cola no se genera nada. La web la sirve Herd; `serve` sobra pero no molesta.
+- `npm run dev` es `vite build --watch`: compila en `public/build` al guardar, sin servidor de Vite ni `public/hot` (en el Chrome del usuario los estilos servidos desde `[::1]:5173` no cargan). Recargar a mano tras cada cambio. `npm run hot` es el servidor de Vite clásico; si se usa y la app sale sin estilos, borrar `public/hot`.
 - `php artisan test --compact` (todo) · `php artisan test --compact tests/Feature/FichasTest.php --filter=nombreDelTest` (uno).
 - `vendor/bin/pint --dirty --format agent` tras tocar PHP.
 - `php artisan curriculo:importar` carga `database/data/curriculo-primaria-asturias.json` (lo que ya no está en el JSON solo se avisa; `--borrar-sobrantes` lo borra); `php artisan db:seed --class=IaConfiguracionSeeder` crea la configuración de IA por tarea.

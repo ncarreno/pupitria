@@ -84,70 +84,102 @@ new #[Layout('layouts.app')] class extends Component
 
 <div>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Nuevo proyecto</h2>
+        <x-cabecera antetitulo="Proyectos" titulo="Nuevo proyecto" :volver="route('proyectos')" volver-texto="Todos los proyectos">
+            Cuéntalo en una frase. La app prepara el diseño completo con el currículo de tu ciclo.
+        </x-cabecera>
     </x-slot>
 
-    <div class="py-8">
-        <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
-            @if ($this->clases->isEmpty())
-                <div class="bg-white shadow-sm sm:rounded-lg p-6 space-y-3 text-sm text-gray-700">
-                    <p>Antes de crear un proyecto, configura tu clase: así el proyecto saldrá ajustado a tu curso, tus áreas y tu número de alumnos.</p>
-                    <a href="{{ route('clases') }}" wire:navigate class="text-indigo-700 hover:underline">Configurar mi clase</a>
-                </div>
-            @else
-                <form wire:submit="crear" class="bg-white shadow-sm sm:rounded-lg p-6 space-y-6">
-                    <div>
-                        <x-input-label for="idea" value="Idea" />
-                        <p class="text-xs text-gray-500">Escríbelo como se lo dirías a una compañera.</p>
-                        <textarea wire:model="idea" id="idea" rows="4" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Proyecto sobre el agua en Asturias, de los ríos al mar, con un producto final que puedan ver las familias"></textarea>
-                        <x-input-error class="mt-2" :messages="$errors->get('idea')" />
+    <div class="contenedor">
+        @if ($this->clases->isEmpty())
+            <x-estado-vacio icono="grupo" titulo="Primero, tu clase">
+                Antes de crear un proyecto, configura tu clase: así el proyecto saldrá ajustado a tu curso, tus áreas y tu número de alumnos.
+                <x-slot:acciones>
+                    <a href="{{ route('clases') }}" wire:navigate class="boton-primario">Configurar mi clase<x-icono nombre="flecha-derecha" class="size-4" /></a>
+                </x-slot:acciones>
+            </x-estado-vacio>
+        @else
+            <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+                <form wire:submit="crear" class="tarjeta overflow-hidden animate-aparecer">
+                    <div class="space-y-7 p-6 sm:p-8">
+                        <div class="grid gap-2">
+                            <x-input-label for="idea" value="Idea" />
+                            <p class="ayuda -mt-1">Escríbelo como se lo dirías a una compañera.</p>
+                            <textarea wire:model="idea" id="idea" rows="5" class="campo resize-y text-[15px] leading-relaxed" placeholder="Proyecto sobre el agua en Asturias, de los ríos al mar, con un producto final que puedan ver las familias"></textarea>
+                            <x-input-error :messages="$errors->get('idea')" />
+                        </div>
+
+                        <div class="grid gap-4 sm:grid-cols-3">
+                            <div class="grid content-start gap-2">
+                                <x-input-label for="claseId" value="Clase" />
+                                <select wire:model.live="claseId" id="claseId" class="campo">
+                                    @foreach ($this->clases as $cl)
+                                        <option value="{{ $cl->id }}">{{ $cl->nombre }} ({{ $cl->curso }}.º)</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="grid content-start gap-2">
+                                <x-input-label for="duracion" value="Duración" />
+                                <select wire:model="duracion" id="duracion" class="campo">
+                                    @foreach (['2 semanas', '3-4 semanas', '6 semanas', 'Un trimestre'] as $d)
+                                        <option>{{ $d }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="grid content-start gap-2">
+                                <x-input-label for="tipo" value="Alcance" />
+                                <select wire:model="tipo" id="tipo" class="campo">
+                                    <option value="aula">Mi clase</option>
+                                    <option value="centro">Todo el centro (1.º a 6.º)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <fieldset class="grid gap-3">
+                            <legend class="etiqueta">Áreas del proyecto</legend>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach ($this->clase?->areas ?? [] as $area)
+                                    @php $elegida = in_array($area->codigo, $areas); @endphp
+                                    <label wire:key="ap-{{ $area->codigo }}" @class(['chip', 'chip-activo' => $elegida, 'chip-inactivo' => ! $elegida])>
+                                        <input type="checkbox" wire:model.live="areas" value="{{ $area->codigo }}" class="sr-only">
+                                        <x-icono :nombre="$elegida ? 'check' : 'mas'" @class(['size-3.5', 'text-pino-700' => $elegida, 'text-stone-400' => ! $elegida]) />
+                                        {{ $area->nombre_corto }}
+                                    </label>
+                                @endforeach
+                            </div>
+                            <x-input-error :messages="$errors->get('areas')" />
+                        </fieldset>
                     </div>
 
-                    <div class="grid sm:grid-cols-3 gap-4">
-                        <div>
-                            <x-input-label for="claseId" value="Clase" />
-                            <select wire:model.live="claseId" id="claseId" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                                @foreach ($this->clases as $cl)
-                                    <option value="{{ $cl->id }}">{{ $cl->nombre }} ({{ $cl->curso }}.º)</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <x-input-label for="duracion" value="Duración" />
-                            <select wire:model="duracion" id="duracion" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                                @foreach (['2 semanas', '3-4 semanas', '6 semanas', 'Un trimestre'] as $d)
-                                    <option>{{ $d }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <x-input-label for="tipo" value="Alcance" />
-                            <select wire:model="tipo" id="tipo" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                                <option value="aula">Mi clase</option>
-                                <option value="centro">Todo el centro (1.º a 6.º)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <fieldset>
-                        <legend class="block font-medium text-sm text-gray-700">Áreas del proyecto</legend>
-                        <div class="mt-2 flex flex-wrap gap-2">
-                            @foreach ($this->clase?->areas ?? [] as $area)
-                                <label wire:key="ap-{{ $area->codigo }}" class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm cursor-pointer {{ in_array($area->codigo, $areas) ? 'border-indigo-500 bg-indigo-50 text-indigo-800' : 'border-gray-300 text-gray-700' }}">
-                                    <input type="checkbox" wire:model.live="areas" value="{{ $area->codigo }}" class="rounded border-gray-300 text-indigo-600">
-                                    {{ $area->nombre_corto }}
-                                </label>
-                            @endforeach
-                        </div>
-                        <x-input-error class="mt-2" :messages="$errors->get('areas')" />
-                    </fieldset>
-
-                    <div class="flex items-center gap-3">
-                        <x-primary-button wire:loading.attr="disabled">Crear proyecto</x-primary-button>
-                        <span class="text-sm text-gray-500">Tarda entre 30 y 90 segundos.</span>
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 bg-stone-50/60 px-6 py-4 sm:px-8">
+                        <span class="inline-flex items-center gap-2 text-sm text-stone-500"><x-icono nombre="reloj" class="size-4" />Tarda entre 30 y 90 segundos.</span>
+                        <x-primary-button wire:loading.attr="disabled" wire:target="crear">
+                            <x-icono nombre="chispa" class="size-4" wire:loading.remove wire:target="crear" />
+                            <span class="punto-vivo" wire:loading wire:target="crear"></span>
+                            Crear proyecto
+                        </x-primary-button>
                     </div>
                 </form>
-            @endif
-        </div>
+
+                <aside class="space-y-4 animate-aparecer [animation-delay:100ms] lg:sticky lg:top-24">
+                    <div class="tarjeta p-6">
+                        <h2 class="tarjeta-titulo">Qué vas a recibir</h2>
+                        <ul class="mt-4 space-y-3 text-sm text-stone-700">
+                            @foreach ([
+                                'Título, lema y narración para enganchar a la clase',
+                                'Criterios y saberes de tu ciclo, comprobados con el decreto',
+                                'Tareas con sus áreas, desde las que sacar fichas',
+                                'Metodologías, agrupamientos, evaluación y difusión',
+                            ] as $punto)
+                                <li class="flex gap-2.5"><x-icono nombre="check-circulo" class="mt-px size-[18px] text-pino-600" />{{ $punto }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                    <div class="rounded-2xl bg-stone-100/80 p-5 text-[13px] leading-relaxed text-stone-600 ring-1 ring-inset ring-stone-200/70">
+                        <p class="flex items-center gap-2 font-medium text-stone-900"><x-icono nombre="lapiz" class="size-4 text-pino-700" />Después lo ajustas a tu gusto</p>
+                        <p class="mt-1.5">Puedes editar cualquier texto, pedir cambios en una frase y volver a una versión anterior.</p>
+                    </div>
+                </aside>
+            </div>
+        @endif
     </div>
 </div>

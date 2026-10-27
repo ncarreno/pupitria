@@ -6,6 +6,7 @@ use App\Models\Ficha;
 use App\Models\Proyecto;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Livewire\Volt\Volt;
 use Tests\TestCase;
 
@@ -15,8 +16,8 @@ class AdminCuentasTest extends TestCase
 
     public function test_solo_el_administrador_ve_las_cuentas(): void
     {
-        $this->actingAs(User::factory()->create())->get(route('admin.cuentas'))->assertForbidden();
-        $this->actingAs(User::factory()->valoradora()->create())->get(route('admin.cuentas'))->assertForbidden();
+        $this->actingAs(User::factory()->create())->get(route('admin.cuentas'))->assertRedirect(route('admin.login'));
+        $this->actingAs(User::factory()->valoradora()->create())->get(route('admin.cuentas'))->assertRedirect(route('admin.login'));
         Volt::actingAs(User::factory()->create())->test('pages.admin.cuentas')->assertForbidden();
     }
 
@@ -84,5 +85,46 @@ class AdminCuentasTest extends TestCase
             ->call('marcarVerificada', $docente->id);
 
         $this->assertTrue($docente->fresh()->hasVerifiedEmail());
+    }
+
+    public function test_el_administrador_da_de_alta_una_cuenta_verificada(): void
+    {
+        $panel = Volt::actingAs(User::factory()->admin()->create())->test('pages.admin.cuentas')
+            ->call('nueva')
+            ->assertSet('mostrarFormulario', true)
+            ->set('nombre', 'Lucía Fernández')
+            ->set('email', ' Lucia@Colegio.es ')
+            ->set('password', 'clave-de-prueba')
+            ->set('valorar', true)
+            ->call('crear')
+            ->assertHasNoErrors()
+            ->assertSet('mostrarFormulario', false)
+            ->assertSee('clave-de-prueba');
+
+        $cuenta = User::firstWhere('email', 'lucia@colegio.es');
+        $this->assertSame('Lucía Fernández', $cuenta->name);
+        $this->assertTrue($cuenta->hasVerifiedEmail());
+        $this->assertTrue(Hash::check('clave-de-prueba', $cuenta->password));
+        $this->assertSame('docente', $cuenta->rol);
+        $this->assertTrue($cuenta->puede_valorar);
+
+        $panel->call('nueva')->assertSet('creada', null)->set('nombre', 'Marta')->set('email', 'marta@colegio.es')
+            ->set('administrador', true)->call('crear');
+        $this->assertTrue(User::firstWhere('email', 'marta@colegio.es')->esAdministrador());
+    }
+
+    public function test_el_alta_valida_el_email_repetido_y_la_contrasena(): void
+    {
+        User::factory()->create(['email' => 'lucia@colegio.es']);
+
+        Volt::actingAs(User::factory()->admin()->create())->test('pages.admin.cuentas')
+            ->call('nueva')
+            ->set('nombre', 'Lucía')
+            ->set('email', 'LUCIA@colegio.es')
+            ->set('password', 'corta')
+            ->call('crear')
+            ->assertHasErrors(['email' => 'unique', 'password']);
+
+        $this->assertSame(2, User::count());
     }
 }

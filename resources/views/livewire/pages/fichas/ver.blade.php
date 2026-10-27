@@ -126,100 +126,132 @@ new #[Layout('layouts.app')] class extends Component
 }; ?>
 
 <div @if ($ficha->estaGenerando()) wire:poll.3s="refrescar" @endif>
-    <x-slot name="header">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ $ficha->titulo ?: 'Nueva ficha' }}</h2>
-            <div class="flex gap-4 text-sm">
-                @if ($ficha->proyecto)
-                    <a href="{{ route('proyectos.ver', $ficha->proyecto) }}" wire:navigate class="text-indigo-700 hover:underline">Ir al proyecto</a>
+    {{-- Cabecera dentro del componente: el título llega con el polling al terminar de generar. --}}
+    <div class="contenedor pb-8 pt-10 sm:pt-12">
+        <x-cabecera antetitulo="Ficha en 3 niveles" :titulo="$ficha->titulo ?: 'Nueva ficha'" :volver="route('fichas')" volver-texto="Todas las fichas">
+            {{ \App\Models\Area::where('codigo', $ficha->area)->value('nombre_corto') ?? $ficha->area }} · {{ $ficha->curso }}.º de Primaria
+            @if ($ficha->proyecto)
+                <x-slot:acciones>
+                    <a href="{{ route('proyectos.ver', $ficha->proyecto) }}" wire:navigate class="boton-secundario"><x-icono nombre="tablero" class="size-4" />Ir al proyecto</a>
+                </x-slot:acciones>
+            @endif
+        </x-cabecera>
+    </div>
+
+    <div class="contenedor space-y-5">
+        @if ($ficha->estaGenerando())
+            <x-generando forma="ficha">
+                Preparando la ficha en tres niveles{{ $ficha->con_imagen && ! $ficha->ilustracionPorPrompt() ? ' y su ilustración' : '' }}…
+            </x-generando>
+        @endif
+
+        @if ($ficha->error)
+            <div class="aviso-ambar flex-wrap items-center">
+                <x-icono nombre="aviso" class="size-5 text-amber-700" />
+                <span class="flex-1">{{ $ficha->error }}</span>
+                @if ($ficha->estado === 'error')
+                    <x-secondary-button wire:click="regenerar" class="boton-sm"><x-icono nombre="refrescar" class="size-4" />Volver a intentarlo</x-secondary-button>
                 @endif
-                <a href="{{ route('fichas') }}" wire:navigate class="text-indigo-700 hover:underline">Todas las fichas</a>
             </div>
-        </div>
-    </x-slot>
+        @endif
 
-    <div class="py-8">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-4">
-            @if ($ficha->estaGenerando())
-                <div class="bg-indigo-50 text-indigo-900 sm:rounded-lg p-4 text-sm flex items-center gap-3">
-                    <svg class="h-4 w-4 animate-spin motion-reduce:animate-none" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-25"/><path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3"/></svg>
-                    Preparando la ficha en tres niveles{{ $ficha->con_imagen && ! $ficha->ilustracionPorPrompt() ? ' y su ilustración' : '' }}… Suele tardar entre 30 y 90 segundos.
-                </div>
-            @endif
-
-            @if ($ficha->error)
-                <div class="bg-amber-50 text-amber-900 sm:rounded-lg p-4 text-sm flex flex-wrap items-center gap-3">
-                    <span>{{ $ficha->error }}</span>
-                    @if ($ficha->estado === 'error')
-                        <x-secondary-button wire:click="regenerar">Volver a intentarlo</x-secondary-button>
-                    @endif
-                </div>
-            @endif
-
-            @if ($ficha->contenido)
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div class="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden" role="group" aria-label="Nivel">
-                        @foreach (\App\Models\Ficha::NIVELES as $clave => $nombre)
-                            <button type="button" wire:click="verNivel('{{ $clave }}')" aria-pressed="{{ $nivel === $clave ? 'true' : 'false' }}"
-                                class="px-4 py-2 text-sm {{ $nivel === $clave ? 'bg-gray-800 text-white font-semibold' : 'text-gray-700 hover:bg-gray-50' }}">{{ $nombre }}</button>
-                        @endforeach
+        @if ($ficha->contenido)
+            <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+                <div class="min-w-0 space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="segmentado" role="group" aria-label="Nivel">
+                            @foreach (\App\Models\Ficha::NIVELES as $clave => $nombre)
+                                @php $puntos = ['refuerzo' => 1, 'estandar' => 2, 'ampliacion' => 3][$clave]; @endphp
+                                <button type="button" wire:click="verNivel('{{ $clave }}')" aria-pressed="{{ $nivel === $clave ? 'true' : 'false' }}"
+                                    @class(['segmento', 'segmento-activo' => $nivel === $clave])>
+                                    <span class="flex gap-0.5" aria-hidden="true">
+                                        @foreach ([1, 2, 3] as $k)
+                                            <i @class(['block size-1.5 rounded-full ring-1', 'bg-pino-600 ring-pino-600' => $k <= $puntos, 'ring-stone-400' => $k > $puntos])></i>
+                                        @endforeach
+                                    </span>
+                                    {{ $nombre }}
+                                </button>
+                            @endforeach
+                        </div>
+                        <x-secondary-button type="button" onclick="window.print()"><x-icono nombre="imprimir" class="size-4" />Imprimir</x-secondary-button>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <span class="text-xs text-gray-500">En la hoja impresa el nivel solo se ve como puntos (● ●● ●●●).</span>
-                        <x-secondary-button type="button" onclick="window.print()">Imprimir</x-secondary-button>
+
+                    <div class="rounded-[1.75rem] bg-stone-200/50 p-3 ring-1 ring-inset ring-stone-200 sm:p-8">
+                        <div class="overflow-hidden rounded-sm shadow-papel" wire:loading.class="opacity-60" wire:target="verNivel">
+                            <x-ficha.hoja :ficha="$ficha" :nivel="$nivel" :editable="! $ficha->estaGenerando()" wire:key="hoja-{{ $nivel }}-{{ $ficha->updated_at?->timestamp }}" />
+                        </div>
                     </div>
+                    <p class="flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-stone-500">
+                        <span class="inline-flex items-center gap-1.5"><x-icono nombre="lapiz" class="size-4 text-stone-400" />Haz clic en cualquier texto para editarlo; se guarda al salir del campo.</span>
+                        <span class="inline-flex items-center gap-1.5"><x-icono nombre="ojo-tachado" class="size-4 text-stone-400" />En la hoja impresa el nivel solo se ve como puntos (● ●● ●●●).</span>
+                    </p>
                 </div>
 
-                @if ($ficha->prompt_imagen && ! $ficha->estaGenerando() && ($ficha->ilustracionPorPrompt() || ! $ficha->imagen || $ficha->error))
-                    <div class="bg-white shadow-sm sm:rounded-lg p-4 text-sm space-y-3" x-data="{ copiado: false }">
-                        <div>
-                            <h3 class="font-medium text-gray-900">Ilustración con ChatGPT o Gemini</h3>
-                            <p class="text-gray-600">Copia este texto, pégalo en
-                                <a href="https://chatgpt.com/" target="_blank" rel="noopener" class="text-indigo-700 hover:underline">ChatGPT</a> o
-                                <a href="https://gemini.google.com/app" target="_blank" rel="noopener" class="text-indigo-700 hover:underline">Gemini</a>,
+                <aside class="space-y-4 xl:sticky xl:top-24">
+                    @if ($ficha->prompt_imagen && ! $ficha->estaGenerando() && ($ficha->ilustracionPorPrompt() || ! $ficha->imagen || $ficha->error))
+                        <section class="tarjeta p-5 text-sm" x-data="{ copiado: false }">
+                            <div class="flex items-center gap-2.5">
+                                <span class="inline-flex size-8 items-center justify-center rounded-lg bg-pino-50 text-pino-700 ring-1 ring-inset ring-pino-200"><x-icono nombre="imagen" class="size-4" /></span>
+                                <h3 class="font-semibold text-stone-950">Ilustración con ChatGPT o Gemini</h3>
+                            </div>
+                            <p class="mt-3 leading-relaxed text-stone-600">Copia este texto, pégalo en
+                                <a href="https://chatgpt.com/" target="_blank" rel="noopener" class="enlace">ChatGPT</a> o
+                                <a href="https://gemini.google.com/app" target="_blank" rel="noopener" class="enlace">Gemini</a>,
                                 descarga la imagen y súbela aquí. Puedes cambiar el texto antes de copiarlo.</p>
-                        </div>
-                        <textarea x-ref="prompt" rows="4" class="block w-full border-gray-300 rounded-md shadow-sm text-sm" aria-label="Prompt para la ilustración">{{ $ficha->prompt_imagen }}</textarea>
-                        <div class="flex flex-wrap items-center gap-3">
-                            <x-secondary-button type="button"
-                                x-on:click="navigator.clipboard.writeText($refs.prompt.value).then(() => { copiado = true; setTimeout(() => copiado = false, 2000) })">
-                                <span x-show="! copiado">Copiar el prompt</span><span x-show="copiado" style="display: none">Copiado</span>
-                            </x-secondary-button>
-                            <label class="inline-flex items-center gap-2 cursor-pointer text-indigo-700 hover:underline">
-                                <input type="file" wire:model="nuevaImagen" accept="image/png,image/jpeg,image/webp" class="sr-only">
-                                {{ $ficha->imagen ? 'Cambiar la imagen' : 'Subir la imagen' }}
-                            </label>
-                            @if ($ficha->imagen)
-                                <button type="button" wire:click="quitarImagen" class="text-red-700 hover:underline">Quitar la imagen</button>
-                            @endif
-                            <span wire:loading wire:target="nuevaImagen" class="text-gray-500">Subiendo…</span>
-                        </div>
-                        <x-input-error :messages="$errors->get('nuevaImagen')" />
-                    </div>
-                @endif
-
-                <div class="shadow-sm sm:rounded-lg overflow-hidden">
-                    <x-ficha.hoja :ficha="$ficha" :nivel="$nivel" :editable="! $ficha->estaGenerando()" wire:key="hoja-{{ $nivel }}-{{ $ficha->updated_at?->timestamp }}" />
-                </div>
-                <p class="text-xs text-gray-500">Haz clic en cualquier texto para editarlo; se guarda al salir del campo.</p>
-
-                <div class="bg-white shadow-sm sm:rounded-lg p-4 text-sm space-y-2">
-                    <p class="text-gray-700"><span class="font-medium">Lo que pediste:</span> {{ $ficha->tema }}</p>
-                    @if ($ficha->ids_descartados)
-                        <p class="text-gray-500">{{ $ficha->ids_descartados }} criterios inventados por la IA se han descartado.</p>
+                            <textarea x-ref="prompt" rows="5" class="campo mt-3 text-[13px] leading-relaxed" aria-label="Prompt para la ilustración">{{ $ficha->prompt_imagen }}</textarea>
+                            <div class="mt-3 grid gap-2">
+                                <x-secondary-button type="button" class="w-full"
+                                    x-on:click="navigator.clipboard.writeText($refs.prompt.value).then(() => { copiado = true; setTimeout(() => copiado = false, 2000) })">
+                                    <span x-show="! copiado" class="inline-flex items-center gap-2"><x-icono nombre="copiar" class="size-4" />Copiar el prompt</span><span x-show="copiado" style="display: none" class="inline-flex items-center gap-2 text-pino-700"><x-icono nombre="check" class="size-4" />Copiado</span>
+                                </x-secondary-button>
+                                <label class="boton-primario w-full cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-pino-600 has-[:focus-visible]:ring-offset-2">
+                                    <input type="file" wire:model="nuevaImagen" accept="image/png,image/jpeg,image/webp" class="sr-only">
+                                    <x-icono nombre="subir" class="size-4" wire:loading.remove wire:target="nuevaImagen" />
+                                    <span class="punto-vivo" wire:loading wire:target="nuevaImagen"></span>
+                                    {{ $ficha->imagen ? 'Cambiar la imagen' : 'Subir la imagen' }}
+                                </label>
+                                <span wire:loading wire:target="nuevaImagen" class="text-center text-stone-500">Subiendo…</span>
+                                @if ($ficha->imagen)
+                                    <button type="button" wire:click="quitarImagen" class="enlace-peligro justify-center py-1 text-sm">Quitar la imagen</button>
+                                @endif
+                            </div>
+                            <x-input-error class="mt-2" :messages="$errors->get('nuevaImagen')" />
+                        </section>
                     @endif
-                    <div class="flex flex-wrap gap-4">
-                        <button type="button" wire:click="regenerar" @disabled($ficha->estaGenerando()) class="text-indigo-700 hover:underline">Generar de nuevo (sustituye la actual)</button>
-                        @if ($confirmarBorrado)
-                            <span class="text-red-800">¿Borrar esta ficha?</span>
-                            <button type="button" wire:click="borrar" class="text-red-700 font-semibold hover:underline">Sí, borrar</button>
-                            <button type="button" wire:click="$set('confirmarBorrado', false)" class="text-gray-700 hover:underline">Cancelar</button>
-                        @else
-                            <button type="button" wire:click="$set('confirmarBorrado', true)" class="text-red-700 hover:underline">Borrar ficha</button>
+
+                    <section class="tarjeta p-5 text-sm">
+                        <h3 class="text-xs font-medium text-stone-500">Lo que pediste:</h3>
+                        <p class="mt-1 leading-relaxed text-stone-800">{{ $ficha->tema }}</p>
+
+                        @if ($ficha->criterios->isNotEmpty())
+                            <div class="mt-4 flex flex-wrap gap-1">
+                                @foreach ($ficha->criterios as $c)
+                                    <span class="codigo" title="{{ $c->texto }}">{{ $ficha->area }} {{ $c->codigo }}</span>
+                                @endforeach
+                            </div>
+                            <p class="mt-2 flex items-center gap-1.5 text-[13px] text-pino-700"><x-icono nombre="escudo" class="size-4" />Criterios comprobados con el decreto</p>
                         @endif
-                    </div>
-                </div>
-            @endif
-        </div>
+                        @if ($ficha->ids_descartados)
+                            <p class="mt-2 text-[13px] text-stone-500">{{ $ficha->ids_descartados }} criterios inventados por la IA se han descartado.</p>
+                        @endif
+
+                        <div class="mt-5 space-y-3 border-t border-stone-100 pt-4">
+                            <button type="button" wire:click="regenerar" @disabled($ficha->estaGenerando()) class="enlace text-left"><x-icono nombre="refrescar" class="size-4" />Generar de nuevo (sustituye la actual)</button>
+                            @if ($confirmarBorrado)
+                                <div class="aviso-rojo flex-col animate-aparecer">
+                                    <span class="text-red-800">¿Borrar esta ficha?</span>
+                                    <div class="flex gap-2">
+                                        <button type="button" wire:click="$set('confirmarBorrado', false)" class="boton-secundario boton-sm">Cancelar</button>
+                                        <button type="button" wire:click="borrar" class="boton-peligro boton-sm">Sí, borrar</button>
+                                    </div>
+                                </div>
+                            @else
+                                <button type="button" wire:click="$set('confirmarBorrado', true)" class="enlace-peligro"><x-icono nombre="papelera" class="size-4" />Borrar ficha</button>
+                            @endif
+                        </div>
+                    </section>
+                </aside>
+            </div>
+        @endif
     </div>
 </div>

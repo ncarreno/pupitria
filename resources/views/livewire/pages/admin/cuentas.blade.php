@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -9,14 +11,30 @@ use Livewire\WithPagination;
 
 /**
  * Cuentas registradas, para el administrador: datos de la cuenta, recuentos de clases,
- * proyectos y fichas (nunca su contenido) y los permisos de administrar y de valorar pruebas.
+ * proyectos y fichas (nunca su contenido), los permisos de administrar y de valorar pruebas
+ * y el alta de cuentas nuevas.
  */
-new #[Layout('layouts.app')] class extends Component
+new #[Layout('layouts.admin')] class extends Component
 {
     use WithPagination;
 
     #[Url]
     public string $buscar = '';
+
+    public bool $mostrarFormulario = false;
+
+    public string $nombre = '';
+
+    public string $email = '';
+
+    public string $password = '';
+
+    public bool $administrador = false;
+
+    public bool $valorar = false;
+
+    /** @var array{nombre: string, email: string, password: string}|null Datos de la cuenta recién creada, para pasárselos a la docente. */
+    public ?array $creada = null;
 
     /**
      * La ruta ya pasa por el middleware `admin`; esto lo comprueba también en cada acción de Livewire.
@@ -44,6 +62,51 @@ new #[Layout('layouts.app')] class extends Component
             ->latest()
             ->latest('id')
             ->paginate(25);
+    }
+
+    public function nueva(): void
+    {
+        $this->resetValidation();
+        $this->reset('nombre', 'email', 'administrador', 'valorar', 'creada');
+        $this->generarPassword();
+        $this->mostrarFormulario = true;
+    }
+
+    public function generarPassword(): void
+    {
+        $this->password = Str::password(12, symbols: false);
+    }
+
+    /**
+     * Alta hecha por el administrador: el email se da por verificado y la contraseña se le pasa
+     * a la docente, que puede cambiarla en su perfil.
+     */
+    public function crear(): void
+    {
+        $this->email = Str::lower(trim($this->email));
+
+        $datos = $this->validate([
+            'nombre' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
+            'password' => ['required', 'string', Password::defaults()],
+        ]);
+
+        $cuenta = User::create(['name' => $datos['nombre'], 'email' => $datos['email'], 'password' => $datos['password']]);
+        $cuenta->forceFill([
+            'email_verified_at' => now(),
+            'rol' => $this->administrador ? 'admin' : 'docente',
+            'puede_valorar' => $this->valorar,
+        ])->save();
+
+        $this->creada = ['nombre' => $cuenta->name, 'email' => $cuenta->email, 'password' => $datos['password']];
+        $this->reset('nombre', 'email', 'password', 'administrador', 'valorar', 'mostrarFormulario', 'buscar');
+        $this->resetPage();
+    }
+
+    public function cancelar(): void
+    {
+        $this->resetValidation();
+        $this->reset('nombre', 'email', 'password', 'administrador', 'valorar', 'mostrarFormulario');
     }
 
     public function alternarAdministrador(int $id): void
@@ -80,87 +143,175 @@ new #[Layout('layouts.app')] class extends Component
 
 <div>
     <x-slot name="header">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Cuentas</h2>
-                <p class="text-sm text-gray-500 mt-1">Solo datos de la cuenta y recuentos: el contenido de cada docente es suyo.</p>
-            </div>
-            <a href="{{ route('admin.ia') }}" wire:navigate class="text-sm text-indigo-700 hover:underline">Configuración de la IA</a>
-        </div>
+        <x-cabecera antetitulo="Administración" titulo="Cuentas">
+            Solo datos de la cuenta y recuentos: el contenido de cada docente es suyo.
+        </x-cabecera>
     </x-slot>
 
-    <div class="py-8">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
-            <div class="bg-white shadow-sm sm:rounded-lg p-4">
-                <label class="grid gap-1 text-sm font-medium text-gray-700 max-w-md">Buscar
-                    <input type="search" wire:model.live.debounce.300ms="buscar" placeholder="Nombre o email" class="rounded-md border-gray-300">
-                </label>
-            </div>
+    <div class="contenedor space-y-4">
+        @if ($mostrarFormulario)
+            <form wire:submit="crear" class="tarjeta overflow-hidden animate-aparecer">
+                <header class="border-b border-stone-100 px-6 py-5 sm:px-8">
+                    <h3 class="text-lg font-semibold tracking-tight text-stone-950">Nueva cuenta</h3>
+                    <p class="mt-1 text-sm text-stone-600">El email queda verificado. Pásale la contraseña a la docente: podrá cambiarla en su perfil.</p>
+                </header>
 
-            <div class="bg-white shadow-sm sm:rounded-lg overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead class="text-left text-xs uppercase tracking-wide text-gray-500">
-                        <tr>
-                            <th class="px-4 py-3">Cuenta</th>
-                            <th class="px-4 py-3">Registro</th>
-                            <th class="px-4 py-3">Email</th>
-                            <th class="px-4 py-3 text-right">Clases</th>
-                            <th class="px-4 py-3 text-right">Proyectos</th>
-                            <th class="px-4 py-3 text-right">Fichas</th>
-                            <th class="px-4 py-3">Permisos</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        @forelse ($this->cuentas as $c)
-                            <tr wire:key="cuenta-{{ $c->id }}" class="align-top">
-                                <td class="px-4 py-3">
-                                    <span class="font-medium text-gray-900">{{ $c->name }}</span>
-                                    @if ($c->is(auth()->user())) <span class="text-xs text-gray-500">(tú)</span> @endif
-                                    <br><span class="text-gray-600">{{ $c->email }}</span>
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-gray-600">{{ $c->created_at?->format('d/m/Y') }}</td>
-                                <td class="px-4 py-3 whitespace-nowrap">
-                                    @if ($c->hasVerifiedEmail())
-                                        <span class="text-green-700">Verificado</span>
-                                    @else
-                                        <span class="text-amber-800">Sin verificar</span>
-                                        <button type="button" wire:click="marcarVerificada({{ $c->id }})" wire:confirm="¿Dar por verificado el email de {{ $c->name }}?" class="block text-xs text-indigo-700 hover:underline">Marcar verificado</button>
-                                    @endif
-                                </td>
-                                <td class="px-4 py-3 text-right">{{ $c->clases_count }}</td>
-                                <td class="px-4 py-3 text-right">{{ $c->proyectos_count }}</td>
-                                <td class="px-4 py-3 text-right">{{ $c->fichas_count }}</td>
-                                <td class="px-4 py-3 space-y-1.5">
-                                    <div class="flex flex-wrap gap-1">
-                                        @if ($c->esAdministrador())
-                                            <span class="rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-800">Administrador</span>
-                                        @endif
-                                        @if ($c->puede_valorar)
-                                            <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Valora pruebas</span>
-                                        @endif
-                                        @if (! $c->esAdministrador() && ! $c->puede_valorar)
-                                            <span class="text-gray-500">Docente</span>
-                                        @endif
-                                    </div>
-                                    <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs">
-                                        @unless ($c->is(auth()->user()))
-                                            <button type="button" wire:click="alternarAdministrador({{ $c->id }})"
-                                                wire:confirm="{{ $c->esAdministrador() ? '¿Quitar el rol de administrador a '.$c->name.'?' : '¿Hacer administrador a '.$c->name.'? Podrá configurar la IA y ver todas las cuentas.' }}"
-                                                class="text-indigo-700 hover:underline">{{ $c->esAdministrador() ? 'Quitar administrador' : 'Hacer administrador' }}</button>
-                                        @endunless
-                                        <button type="button" wire:click="alternarValorar({{ $c->id }})" class="text-indigo-700 hover:underline">{{ $c->puede_valorar ? 'Quitar permiso de valorar' : 'Dar permiso de valorar' }}</button>
-                                    </div>
-                                    <x-input-error :messages="$errors->get('cuenta.'.$c->id)" />
-                                </td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="7" class="px-4 py-4 text-gray-500">No hay cuentas que coincidan.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+                <div class="divide-y divide-stone-100">
+                    <div class="grid gap-6 px-6 py-6 sm:px-8 lg:grid-cols-[220px_minmax(0,1fr)]">
+                        <div>
+                            <p class="text-sm font-medium text-stone-950">La cuenta</p>
+                            <p class="ayuda mt-1">Con este email y esta contraseña entrará en la app.</p>
+                        </div>
+                        <div class="grid gap-4 sm:grid-cols-3">
+                            <div class="grid content-start gap-2">
+                                <x-input-label for="nombre" value="Nombre" />
+                                <x-text-input wire:model="nombre" id="nombre" type="text" required autofocus />
+                                <x-input-error :messages="$errors->get('nombre')" />
+                            </div>
+                            <div class="grid content-start gap-2">
+                                <x-input-label for="email" value="Email" />
+                                <x-text-input wire:model="email" id="email" type="email" required />
+                                <x-input-error :messages="$errors->get('email')" />
+                            </div>
+                            <div class="grid content-start gap-2">
+                                <x-input-label for="password" value="Contraseña" />
+                                <div class="flex gap-2">
+                                    <x-text-input wire:model="password" id="password" type="text" class="cifra" required autocomplete="off" />
+                                    <button type="button" wire:click="generarPassword" class="boton-icono shrink-0" aria-label="Generar otra contraseña" title="Generar otra"><x-icono nombre="refrescar" class="size-4" /></button>
+                                </div>
+                                <x-input-error :messages="$errors->get('password')" />
+                            </div>
+                        </div>
+                    </div>
 
-            {{ $this->cuentas->links() }}
+                    <fieldset class="grid gap-6 px-6 py-6 sm:px-8 lg:grid-cols-[220px_minmax(0,1fr)]">
+                        <div>
+                            <legend class="text-sm font-medium text-stone-950">Permisos</legend>
+                            <p class="ayuda mt-1">Sin marcar nada, es una docente.</p>
+                        </div>
+                        <div class="space-y-3 text-sm text-stone-700">
+                            <label class="flex items-center gap-2.5">
+                                <input type="checkbox" wire:model="administrador" class="casilla">
+                                Administrador: configura la IA y ve todas las cuentas
+                            </label>
+                            <label class="flex items-center gap-2.5">
+                                <input type="checkbox" wire:model="valorar" class="casilla">
+                                Valora pruebas: ve y valora la batería de pruebas
+                            </label>
+                        </div>
+                    </fieldset>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 border-t border-stone-100 bg-stone-50/60 px-6 py-4 sm:px-8">
+                    <x-secondary-button type="button" wire:click="cancelar">Cancelar</x-secondary-button>
+                    <x-primary-button wire:loading.attr="disabled" wire:target="crear"><x-icono nombre="check" class="size-4" />Crear cuenta</x-primary-button>
+                </div>
+            </form>
+        @endif
+
+        @if ($creada)
+            <div class="aviso-pino animate-aparecer" x-data="{ copiado: false }">
+                <x-icono nombre="check-circulo" class="mt-0.5 size-5 shrink-0" />
+                <div class="min-w-0 flex-1">
+                    <p class="font-medium">Cuenta creada para {{ $creada['nombre'] }}. Apunta la contraseña ahora: no se vuelve a mostrar.</p>
+                    <p x-ref="datos" class="mt-2 whitespace-pre-line font-mono text-[13px]">Email: {{ $creada['email'] }}
+Contraseña: {{ $creada['password'] }}</p>
+                    <div class="mt-3 flex flex-wrap items-center gap-3">
+                        <x-secondary-button type="button" class="boton-sm"
+                            x-on:click="navigator.clipboard.writeText($refs.datos.innerText).then(() => { copiado = true; setTimeout(() => copiado = false, 2000) })">
+                            <span x-show="! copiado" class="inline-flex items-center gap-2"><x-icono nombre="copiar" class="size-4" />Copiar los datos</span><span x-show="copiado" style="display: none" class="inline-flex items-center gap-2 text-pino-700"><x-icono nombre="check" class="size-4" />Copiado</span>
+                        </x-secondary-button>
+                        <button type="button" wire:click="$set('creada', null)" class="enlace text-xs">Ya los tengo, cerrar</button>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <label class="relative block w-full max-w-md">
+                <span class="sr-only">Buscar</span>
+                <x-icono nombre="buscar" class="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-stone-400" />
+                <input type="search" wire:model.live.debounce.300ms="buscar" placeholder="Nombre o email" class="campo ps-10">
+                <span wire:loading.delay wire:target="buscar" class="absolute right-3.5 top-1/2 -translate-y-1/2"><span class="punto-vivo text-pino-600"></span></span>
+            </label>
+            @unless ($mostrarFormulario)
+                <x-primary-button wire:click="nueva"><x-icono nombre="mas" class="size-4" />Nueva cuenta</x-primary-button>
+            @endunless
         </div>
+
+        <div class="tarjeta overflow-x-auto">
+            <table class="tabla">
+                <thead>
+                    <tr>
+                        <th>Cuenta</th>
+                        <th>Registro</th>
+                        <th>Email</th>
+                        <th class="!text-right">Clases</th>
+                        <th class="!text-right">Proyectos</th>
+                        <th class="!text-right">Fichas</th>
+                        <th>Permisos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($this->cuentas as $c)
+                        @php $iniciales = str($c->name)->explode(' ')->filter()->take(2)->map(fn ($p) => mb_substr($p, 0, 1))->implode(''); @endphp
+                        <tr wire:key="cuenta-{{ $c->id }}" class="align-top">
+                            <td>
+                                <div class="flex items-center gap-3">
+                                    <span @class([
+                                        'inline-flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold uppercase ring-1 ring-inset',
+                                        'bg-stone-900 text-pino-300 ring-stone-900' => $c->esAdministrador(),
+                                        'bg-pino-50 text-pino-800 ring-pino-200' => ! $c->esAdministrador(),
+                                    ])>{{ $iniciales }}</span>
+                                    <div class="min-w-0">
+                                        <span class="font-medium text-stone-950">{{ $c->name }}</span>
+                                        @if ($c->is(auth()->user())) <span class="text-xs text-stone-500">(tú)</span> @endif
+                                        <br><span class="text-[13px] text-stone-500">{{ $c->email }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="cifra whitespace-nowrap text-stone-500">{{ $c->created_at?->format('d/m/Y') }}</td>
+                            <td class="whitespace-nowrap">
+                                @if ($c->hasVerifiedEmail())
+                                    <span class="insignia-pino"><x-icono nombre="check" class="size-3" />Verificado</span>
+                                @else
+                                    <span class="insignia-ambar">Sin verificar</span>
+                                    <button type="button" wire:click="marcarVerificada({{ $c->id }})" wire:confirm="¿Dar por verificado el email de {{ $c->name }}?" class="enlace mt-1.5 block text-xs">Marcar verificado</button>
+                                @endif
+                            </td>
+                            <td class="cifra text-right">{{ $c->clases_count }}</td>
+                            <td class="cifra text-right">{{ $c->proyectos_count }}</td>
+                            <td class="cifra text-right">{{ $c->fichas_count }}</td>
+                            <td class="space-y-2">
+                                <div class="flex flex-wrap gap-1">
+                                    @if ($c->esAdministrador())
+                                        <span class="insignia bg-stone-900 text-white ring-stone-900"><x-icono nombre="llave" class="size-3" />Administrador</span>
+                                    @endif
+                                    @if ($c->puede_valorar)
+                                        <span class="insignia-ambar"><x-icono nombre="estrella" class="size-3" />Valora pruebas</span>
+                                    @endif
+                                    @if (! $c->esAdministrador() && ! $c->puede_valorar)
+                                        <span class="insignia-neutra">Docente</span>
+                                    @endif
+                                </div>
+                                <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                                    @unless ($c->is(auth()->user()))
+                                        <button type="button" wire:click="alternarAdministrador({{ $c->id }})"
+                                            wire:confirm="{{ $c->esAdministrador() ? '¿Quitar el rol de administrador a '.$c->name.'?' : '¿Hacer administrador a '.$c->name.'? Podrá configurar la IA y ver todas las cuentas.' }}"
+                                            class="enlace">{{ $c->esAdministrador() ? 'Quitar administrador' : 'Hacer administrador' }}</button>
+                                    @endunless
+                                    <button type="button" wire:click="alternarValorar({{ $c->id }})" class="enlace">{{ $c->puede_valorar ? 'Quitar permiso de valorar' : 'Dar permiso de valorar' }}</button>
+                                </div>
+                                <x-input-error :messages="$errors->get('cuenta.'.$c->id)" />
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="7" class="py-10 text-center text-stone-500">No hay cuentas que coincidan.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        {{ $this->cuentas->links() }}
     </div>
 </div>

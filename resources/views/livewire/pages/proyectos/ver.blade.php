@@ -112,102 +112,142 @@ new #[Layout('layouts.app')] class extends Component
 }; ?>
 
 <div @if ($proyecto->estaGenerando()) wire:poll.3s="refrescar" @endif>
-    <x-slot name="header">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ $proyecto->titulo ?: 'Nuevo proyecto' }}</h2>
-            <a href="{{ route('proyectos') }}" wire:navigate class="text-sm text-indigo-700 hover:underline">Todos los proyectos</a>
-        </div>
-    </x-slot>
+    {{-- Cabecera dentro del componente: el título llega con el polling al terminar de generar. --}}
+    <div class="contenedor pb-8 pt-10 sm:pt-12">
+        <x-cabecera :antetitulo="$proyecto->tipo === 'centro' ? 'Proyecto de centro' : 'Proyecto de aula'" :titulo="$proyecto->titulo ?: 'Nuevo proyecto'" :volver="route('proyectos')" volver-texto="Todos los proyectos">
+            {{ $proyecto->clase?->nombre ?? $proyecto->curso.'.º' }} · {{ $proyecto->duracion }}
+        </x-cabecera>
+    </div>
 
-    <div class="py-8">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
+    <div class="contenedor space-y-5">
+        @if ($proyecto->estaGenerando())
+            <x-generando :esqueleto="! $proyecto->contenido">
+                {{ $proyecto->contenido ? 'Aplicando el cambio…' : 'Preparando el proyecto con el currículo de tu ciclo…' }}
+            </x-generando>
+        @endif
 
-            @if ($proyecto->estaGenerando())
-                <div class="bg-indigo-50 text-indigo-900 sm:rounded-lg p-4 text-sm flex items-center gap-3">
-                    <svg class="h-4 w-4 animate-spin motion-reduce:animate-none" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-25"/><path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3"/></svg>
-                    {{ $proyecto->contenido ? 'Aplicando el cambio…' : 'Preparando el proyecto con el currículo de tu ciclo…' }} Suele tardar entre 30 y 90 segundos.
-                </div>
-            @endif
+        @if ($proyecto->error)
+            <div class="aviso-ambar flex-wrap items-center">
+                <x-icono nombre="aviso" class="size-5 text-amber-700" />
+                <span class="flex-1">{{ $proyecto->error }}</span>
+                @if ($proyecto->estado === 'error')
+                    <x-secondary-button wire:click="reintentar" class="boton-sm"><x-icono nombre="refrescar" class="size-4" />Volver a intentarlo</x-secondary-button>
+                @endif
+            </div>
+        @endif
 
-            @if ($proyecto->error)
-                <div class="bg-amber-50 text-amber-900 sm:rounded-lg p-4 text-sm flex flex-wrap items-center gap-3">
-                    <span>{{ $proyecto->error }}</span>
-                    @if ($proyecto->estado === 'error')
-                        <x-secondary-button wire:click="reintentar">Volver a intentarlo</x-secondary-button>
-                    @endif
-                </div>
-            @endif
-
-            @if ($proyecto->contenido)
-                <div class="bg-white shadow-sm sm:rounded-lg p-4 space-y-3">
-                    <div class="flex flex-wrap gap-2">
-                        @foreach ($this::ATAJOS as $atajo)
-                            <button type="button" wire:click="ajustar(@js($atajo))" @disabled($proyecto->estaGenerando()) class="rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50">{{ $atajo }}</button>
-                        @endforeach
+        @if ($proyecto->contenido)
+            <section class="tarjeta p-5 sm:p-6">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-center">
+                    <div class="flex items-center gap-3 lg:w-56 lg:shrink-0">
+                        <span class="inline-flex size-9 items-center justify-center rounded-xl bg-pino-50 text-pino-700 ring-1 ring-inset ring-pino-200"><x-icono nombre="chispa" class="size-[18px]" /></span>
+                        <div>
+                            <p class="text-sm font-semibold text-stone-950">Pide un cambio</p>
+                            <p class="text-xs text-stone-500">Se guarda como versión nueva</p>
+                        </div>
                     </div>
-                    <form wire:submit="ajustar" class="flex gap-2">
+                    <form wire:submit="ajustar" class="flex flex-1 gap-2">
                         <x-text-input wire:model="ajuste" type="text" class="flex-1" placeholder="Cambia la tarea 4 por algo más manipulativo" :disabled="$proyecto->estaGenerando()" />
                         <x-primary-button :disabled="$proyecto->estaGenerando()">Aplicar</x-primary-button>
                     </form>
-                    <x-input-error :messages="$errors->get('ajuste')" />
                 </div>
+                <div class="mt-4 flex flex-wrap gap-2 lg:ps-[15.5rem]">
+                    @foreach ($this::ATAJOS as $atajo)
+                        <button type="button" wire:click="ajustar(@js($atajo))" @disabled($proyecto->estaGenerando()) class="chip chip-inactivo py-1 text-[13px] disabled:pointer-events-none disabled:opacity-50">{{ $atajo }}</button>
+                    @endforeach
+                </div>
+                <x-input-error class="mt-3" :messages="$errors->get('ajuste')" />
+            </section>
 
-                <div class="overflow-x-auto shadow-sm sm:rounded-lg">
+            <div>
+                <div class="overflow-x-auto rounded-2xl shadow-papel ring-1 ring-stone-200">
                     <x-proyecto.documento :proyecto="$proyecto" :editable="! $proyecto->estaGenerando()" wire:key="doc-{{ $proyecto->updated_at?->timestamp }}" />
                 </div>
-                <p class="text-xs text-gray-500">Haz clic en cualquier texto para editarlo; se guarda al salir del campo. Los criterios y saberes se cambian pidiendo un ajuste, para que siempre salgan del decreto.</p>
+                <p class="mt-3 flex items-start gap-2 text-[13px] text-stone-500"><x-icono nombre="lapiz" class="mt-px size-4 text-stone-400" />Haz clic en cualquier texto para editarlo; se guarda al salir del campo. Los criterios y saberes se cambian pidiendo un ajuste, para que siempre salgan del decreto.</p>
+            </div>
 
-                <section class="bg-white shadow-sm sm:rounded-lg p-4">
-                    <h3 class="font-semibold text-gray-900 text-sm mb-2">Fichas de este proyecto</h3>
-                    @php($fichasPorTarea = $proyecto->fichas()->get()->groupBy('tarea_indice'))
-                    <ul class="divide-y divide-gray-100 text-sm">
+            <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+                <section class="tarjeta">
+                    <div class="tarjeta-cabecera">
+                        <h3 class="tarjeta-titulo">Fichas de este proyecto</h3>
+                        <span class="text-xs text-stone-500">Una o más por tarea</span>
+                    </div>
+                    @php $fichasPorTarea = $proyecto->fichas()->get()->groupBy('tarea_indice'); @endphp
+                    <ul class="divide-y divide-stone-100">
                         @foreach ($proyecto->contenido['tareas'] ?? [] as $i => $t)
-                            <li wire:key="ft-{{ $i }}" class="py-2 flex flex-wrap items-baseline justify-between gap-2">
-                                <span class="text-gray-800"><span class="font-medium">{{ $i + 1 }}.</span> {{ $t['titulo'] }}
-                                    @foreach ($fichasPorTarea[$i] ?? [] as $f)
-                                        · <a href="{{ route('fichas.ver', $f) }}" wire:navigate class="text-indigo-700 hover:underline">{{ $f->titulo ?: 'ficha' }}</a>
-                                    @endforeach
-                                </span>
-                                <a href="{{ route('fichas.nueva', ['proyecto' => $proyecto->id, 'tarea' => $i]) }}" wire:navigate class="text-indigo-700 hover:underline shrink-0">Crear ficha</a>
+                            <li wire:key="ft-{{ $i }}" class="flex items-start gap-4 px-5 py-4 sm:px-6">
+                                <span class="cifra inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-pino-700 text-xs font-medium text-white">{{ $i + 1 }}</span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-medium text-stone-900">{{ $t['titulo'] }}</p>
+                                    @if ($fichasPorTarea[$i] ?? null)
+                                        <div class="mt-2 flex flex-wrap gap-1.5">
+                                            @foreach ($fichasPorTarea[$i] as $f)
+                                                <a href="{{ route('fichas.ver', $f) }}" wire:navigate class="inline-flex max-w-full items-center gap-1.5 rounded-lg bg-stone-50 px-2 py-1 text-xs font-medium text-stone-700 ring-1 ring-inset ring-stone-200 transition hover:bg-pino-50 hover:text-pino-800 hover:ring-pino-200">
+                                                    <x-icono nombre="ficha" class="size-3.5" /><span class="truncate">{{ $f->titulo ?: 'ficha' }}</span>
+                                                </a>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
+                                <a href="{{ route('fichas.nueva', ['proyecto' => $proyecto->id, 'tarea' => $i]) }}" wire:navigate class="boton-secundario boton-sm shrink-0"><x-icono nombre="mas" class="size-3.5" />Crear ficha</a>
                             </li>
                         @endforeach
                     </ul>
                 </section>
 
-                <div class="grid md:grid-cols-2 gap-4">
-                    <section class="bg-white shadow-sm sm:rounded-lg p-4">
-                        <h3 class="font-semibold text-gray-900 text-sm mb-2">Versiones</h3>
-                        <ul class="divide-y divide-gray-100 text-sm">
+                <div class="space-y-5">
+                    <section class="tarjeta">
+                        <div class="tarjeta-cabecera">
+                            <h3 class="tarjeta-titulo">Versiones</h3>
+                            <x-icono nombre="historial" class="size-4 text-stone-400" />
+                        </div>
+                        <ol class="relative px-5 py-4 sm:px-6">
+                            <span aria-hidden="true" class="absolute bottom-6 left-[1.9rem] top-6 w-px bg-stone-200 sm:left-[2.15rem]"></span>
                             @foreach ($proyecto->versiones as $v)
-                                <li wire:key="v-{{ $v->id }}" class="py-2 flex items-baseline justify-between gap-3">
-                                    <span class="text-gray-700">
-                                        <span class="font-medium">v{{ $v->numero }}</span>
-                                        · {{ $v->instruccion ?? 'Generación inicial' }}
-                                        <span class="text-gray-400">· {{ $v->created_at->format('d/m H:i') }}</span>
-                                    </span>
+                                <li wire:key="v-{{ $v->id }}" class="relative flex items-start gap-3 py-2">
+                                    <span @class(['relative mt-1 size-2.5 shrink-0 rounded-full ring-4 ring-white', 'bg-pino-600' => $loop->first, 'bg-stone-300' => ! $loop->first])></span>
+                                    <div class="min-w-0 flex-1 text-sm">
+                                        <p class="text-stone-800"><span class="cifra font-medium text-stone-950">v{{ $v->numero }}</span> · {{ $v->instruccion ?? 'Generación inicial' }}</p>
+                                        <p class="cifra text-xs text-stone-400">{{ $v->created_at->format('d/m H:i') }}</p>
+                                    </div>
                                     @unless ($loop->first)
-                                        <button type="button" wire:click="restaurar({{ $v->id }})" @disabled($proyecto->estaGenerando()) class="text-indigo-700 hover:underline shrink-0">Restaurar</button>
+                                        <button type="button" wire:click="restaurar({{ $v->id }})" @disabled($proyecto->estaGenerando()) class="enlace shrink-0 text-[13px]">Restaurar</button>
+                                    @else
+                                        <span class="insignia-pino shrink-0">actual</span>
                                     @endunless
                                 </li>
                             @endforeach
-                        </ul>
+                        </ol>
                     </section>
-                    <section class="bg-white shadow-sm sm:rounded-lg p-4 text-sm space-y-2">
-                        <h3 class="font-semibold text-gray-900">Datos del proyecto</h3>
-                        <p class="text-gray-700"><span class="font-medium">Idea inicial:</span> {{ $proyecto->idea }}</p>
-                        <p class="text-gray-700"><span class="font-medium">Clase:</span> {{ $proyecto->clase?->nombre ?? '—' }} · {{ $proyecto->duracion }}</p>
-                        @if ($confirmarBorrado)
-                            <div class="rounded-md bg-red-50 p-3 text-red-800 flex flex-wrap items-center gap-3">
-                                <span>¿Borrar este proyecto y todas sus versiones?</span>
-                                <x-danger-button wire:click="borrar">Borrar</x-danger-button>
-                                <x-secondary-button wire:click="$set('confirmarBorrado', false)">Cancelar</x-secondary-button>
+
+                    <section class="tarjeta p-5 text-sm sm:p-6">
+                        <h3 class="tarjeta-titulo">Datos del proyecto</h3>
+                        <dl class="mt-4 space-y-3">
+                            <div>
+                                <dt class="text-xs font-medium text-stone-500">Idea inicial:</dt>
+                                <dd class="mt-0.5 leading-relaxed text-stone-800">{{ $proyecto->idea }}</dd>
                             </div>
-                        @else
-                            <button type="button" wire:click="$set('confirmarBorrado', true)" class="text-red-700 hover:underline">Borrar proyecto</button>
-                        @endif
+                            <div>
+                                <dt class="text-xs font-medium text-stone-500">Clase:</dt>
+                                <dd class="mt-0.5 text-stone-800">{{ $proyecto->clase?->nombre ?? '—' }} · {{ $proyecto->duracion }}</dd>
+                            </div>
+                        </dl>
+                        <div class="mt-5 border-t border-stone-100 pt-4">
+                            @if ($confirmarBorrado)
+                                <div class="aviso-rojo flex-col animate-aparecer">
+                                    <span>¿Borrar este proyecto y todas sus versiones?</span>
+                                    <div class="flex gap-2">
+                                        <x-secondary-button wire:click="$set('confirmarBorrado', false)" class="boton-sm">Cancelar</x-secondary-button>
+                                        <x-danger-button wire:click="borrar" class="boton-sm">Borrar</x-danger-button>
+                                    </div>
+                                </div>
+                            @else
+                                <button type="button" wire:click="$set('confirmarBorrado', true)" class="enlace-peligro text-sm"><x-icono nombre="papelera" class="size-4" />Borrar proyecto</button>
+                            @endif
+                        </div>
                     </section>
                 </div>
-            @endif
-        </div>
+            </div>
+        @endif
     </div>
 </div>

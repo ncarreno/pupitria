@@ -70,4 +70,12 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->esAdministrador() || $this->puede_valorar;
     }
+
+    /**
+     * Entra por `/admin/login`: el administrador, y quien valora pruebas, que allí solo ve la batería.
+     */
+    public function puedeEntrarEnAdministracion(): bool
+    {
+        return $this->puedeValorarPruebas();
+    }
 }

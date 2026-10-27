@@ -37,25 +37,27 @@ new #[Layout('layouts.guest')] class extends Component
 }; ?>
 
 <div>
-    <div class="mb-4 text-sm text-gray-600">
+    <span class="inline-flex size-11 items-center justify-center rounded-xl bg-pino-50 text-pino-700 ring-1 ring-inset ring-pino-200"><x-icono nombre="llave" class="size-5" /></span>
+    <h1 class="mt-6 text-3xl font-semibold tracking-tight text-stone-950">Recupera el acceso</h1>
+    <p class="mt-2 text-[15px] leading-relaxed text-stone-600">
         {{ __('Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.') }}
-    </div>
+    </p>
 
     <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+    <x-auth-session-status class="mt-6" :status="session('status')" />
 
-    <form wire:submit="sendPasswordResetLink">
+    <form wire:submit="sendPasswordResetLink" class="mt-8 space-y-5">
         <!-- Email Address -->
-        <div>
+        <div class="grid gap-2">
             <x-input-label for="email" :value="__('Email')" />
-            <x-text-input wire:model="email" id="email" class="block mt-1 w-full" type="email" name="email" required autofocus />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+            <x-text-input wire:model="email" id="email" type="email" name="email" required autofocus />
+            <x-input-error :messages="$errors->get('email')" />
         </div>
 
-        <div class="flex items-center justify-end mt-4">
-            <x-primary-button>
-                {{ __('Email Password Reset Link') }}
-            </x-primary-button>
-        </div>
+        <x-primary-button class="w-full py-3" wire:loading.attr="disabled">
+            {{ __('Email Password Reset Link') }}
+        </x-primary-button>
     </form>
+
+    <p class="mt-8 text-sm"><a href="{{ route('login') }}" wire:navigate class="enlace"><x-icono nombre="flecha-izquierda" class="size-4" />Volver a entrar</a></p>
 </div>

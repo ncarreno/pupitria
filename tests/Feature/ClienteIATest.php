@@ -64,7 +64,7 @@ class ClienteIATest extends TestCase
         Route::middleware(['web', 'auth', 'admin'])->get('/_prueba_admin', fn () => 'ok');
 
         $docente = User::factory()->create();
-        $this->actingAs($docente)->get('/_prueba_admin')->assertForbidden();
+        $this->actingAs($docente)->get('/_prueba_admin')->assertRedirect(route('admin.login'));
 
         $docente->forceFill(['rol' => 'admin'])->save();
         $this->actingAs($docente->fresh())->get('/_prueba_admin')->assertOk();

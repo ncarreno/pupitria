@@ -1,29 +1,21 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Profile') }}
-        </h2>
+        <x-cabecera antetitulo="Tu cuenta" :titulo="__('Profile')">
+            Tus datos de acceso. Lo que preparas en la app solo lo ves tú.
+        </x-cabecera>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    <livewire:profile.update-profile-information-form />
-                </div>
-            </div>
+    <div class="contenedor space-y-5 escalonado">
+        <div class="tarjeta p-6 sm:p-8">
+            <livewire:profile.update-profile-information-form />
+        </div>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    <livewire:profile.update-password-form />
-                </div>
-            </div>
+        <div class="tarjeta p-6 sm:p-8">
+            <livewire:profile.update-password-form />
+        </div>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    <livewire:profile.delete-user-form />
-                </div>
-            </div>
+        <div class="tarjeta border-red-200/80 p-6 sm:p-8">
+            <livewire:profile.delete-user-form />
         </div>
     </div>
 </x-app-layout>

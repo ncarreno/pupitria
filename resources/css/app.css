@@ -1,3 +1,260 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    html {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        @apply bg-stone-50 text-stone-900;
+        font-feature-settings: 'ss01', 'ss03';
+    }
+
+    ::selection {
+        @apply bg-pino-200 text-pino-950;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+}
+
+@layer components {
+    .contenedor {
+        @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+    }
+
+    /* Botones */
+    .boton {
+        @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition duration-200 ease-suave focus:outline-none focus-visible:ring-2 focus-visible:ring-pino-600 focus-visible:ring-offset-2 active:translate-y-px active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+    }
+
+    .boton-sm {
+        @apply gap-1.5 rounded-lg px-3 py-1.5 text-[13px];
+    }
+
+    .boton-primario {
+        @apply boton bg-pino-700 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_1px_2px_rgba(15,36,33,0.25),0_6px_16px_-8px_rgba(15,36,33,0.5)] hover:bg-pino-800;
+    }
+
+    .boton-oscuro {
+        @apply boton bg-stone-900 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_2px_rgba(28,25,23,0.3)] hover:bg-stone-800;
+    }
+
+    .boton-secundario {
+        @apply boton bg-white text-stone-800 shadow-[0_1px_2px_rgba(41,37,36,0.06)] ring-1 ring-inset ring-stone-300/80 hover:bg-stone-50 hover:ring-stone-400/70;
+    }
+
+    .boton-peligro {
+        @apply boton bg-red-700 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_1px_2px_rgba(127,29,29,0.3)] hover:bg-red-800 focus-visible:ring-red-600;
+    }
+
+    .boton-fantasma {
+        @apply boton text-stone-700 hover:bg-stone-200/60 hover:text-stone-950;
+    }
+
+    .boton-icono {
+        @apply inline-flex size-8 items-center justify-center rounded-lg text-stone-500 transition duration-200 ease-suave hover:bg-stone-100 hover:text-stone-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-pino-600 active:scale-95 disabled:pointer-events-none disabled:opacity-35;
+    }
+
+    .enlace {
+        @apply inline-flex items-center gap-1 font-medium text-pino-700 decoration-pino-300 underline-offset-4 transition hover:text-pino-900 hover:underline disabled:pointer-events-none disabled:opacity-50;
+    }
+
+    .enlace-peligro {
+        @apply inline-flex items-center gap-1 font-medium text-red-700 decoration-red-300 underline-offset-4 transition hover:text-red-900 hover:underline;
+    }
+
+    /* Superficies */
+    .tarjeta {
+        @apply rounded-2xl border border-stone-200/80 bg-white shadow-suave;
+    }
+
+    .tarjeta-cabecera {
+        @apply flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-5 py-4 sm:px-6;
+    }
+
+    .tarjeta-titulo {
+        @apply text-[15px] font-semibold tracking-tight text-stone-950;
+    }
+
+    .antetitulo {
+        @apply text-xs font-semibold uppercase tracking-[0.14em] text-pino-700;
+    }
+
+    /* Formularios */
+    .etiqueta {
+        @apply block text-sm font-medium text-stone-800;
+    }
+
+    .ayuda {
+        @apply text-[13px] leading-relaxed text-stone-500;
+    }
+
+    .campo {
+        @apply block w-full rounded-xl border-stone-300 bg-white px-3.5 py-2.5 text-sm text-stone-900 shadow-[0_1px_2px_rgba(41,37,36,0.05)] transition duration-200 ease-suave placeholder:text-stone-400 hover:border-stone-400 focus:border-pino-600 focus:ring-4 focus:ring-pino-600/15 disabled:cursor-not-allowed disabled:bg-stone-50 disabled:text-stone-500;
+    }
+
+    select.campo {
+        @apply pe-10;
+    }
+
+    .casilla {
+        @apply rounded-[5px] border-stone-300 text-pino-700 shadow-sm transition focus:ring-pino-600/30 focus:ring-offset-0;
+    }
+
+    .chip {
+        @apply inline-flex cursor-pointer select-none items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-medium ring-1 ring-inset transition duration-200 ease-suave has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-pino-600 active:scale-[0.97];
+    }
+
+    .chip-inactivo {
+        @apply bg-white text-stone-700 ring-stone-300 hover:bg-stone-50 hover:ring-stone-400;
+    }
+
+    .chip-activo {
+        @apply bg-pino-50 text-pino-900 ring-pino-600/60;
+    }
+
+    .opcion {
+        @apply relative flex cursor-pointer gap-3 rounded-xl p-4 text-sm ring-1 ring-inset transition duration-200 ease-suave has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-pino-600;
+    }
+
+    .opcion-inactiva {
+        @apply bg-white ring-stone-200 hover:ring-stone-300 hover:bg-stone-50/60;
+    }
+
+    .opcion-activa {
+        @apply bg-pino-50/70 ring-2 ring-pino-600;
+    }
+
+    /* Controles segmentados (niveles, periodos) */
+    .segmentado {
+        @apply inline-flex rounded-xl bg-stone-200/60 p-1 ring-1 ring-inset ring-stone-200;
+    }
+
+    .segmento {
+        @apply inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-sm font-medium text-stone-600 transition duration-200 ease-suave hover:text-stone-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-pino-600;
+    }
+
+    .segmento-activo {
+        @apply bg-white text-stone-950 shadow-[0_1px_2px_rgba(41,37,36,0.12)] ring-1 ring-stone-200/80;
+    }
+
+    /* Insignias */
+    .insignia {
+        @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset;
+    }
+
+    .insignia-neutra {
+        @apply insignia bg-stone-100 text-stone-700 ring-stone-200;
+    }
+
+    .insignia-pino {
+        @apply insignia bg-pino-50 text-pino-800 ring-pino-200;
+    }
+
+    .insignia-ambar {
+        @apply insignia bg-amber-50 text-amber-800 ring-amber-200;
+    }
+
+    .insignia-rojo {
+        @apply insignia bg-red-50 text-red-700 ring-red-200;
+    }
+
+    .codigo {
+        @apply inline-flex shrink-0 items-center self-start rounded-md bg-pino-50 px-1.5 py-0.5 font-mono text-[11px] font-medium text-pino-800 ring-1 ring-inset ring-pino-200/70;
+    }
+
+    /* Avisos */
+    .aviso {
+        @apply flex gap-3 rounded-2xl p-4 text-sm leading-relaxed ring-1 ring-inset;
+    }
+
+    .aviso-pino {
+        @apply aviso bg-pino-50 text-pino-900 ring-pino-200/80;
+    }
+
+    .aviso-ambar {
+        @apply aviso bg-amber-50 text-amber-900 ring-amber-200/80;
+    }
+
+    .aviso-rojo {
+        @apply aviso bg-red-50 text-red-900 ring-red-200/80;
+    }
+
+    /* Tablas */
+    .tabla {
+        @apply w-full text-sm;
+    }
+
+    .tabla thead th {
+        @apply whitespace-nowrap border-b border-stone-200 bg-stone-50/80 px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500;
+    }
+
+    .tabla tbody td {
+        @apply px-4 py-3;
+    }
+
+    .tabla tbody tr {
+        @apply border-b border-stone-100 transition-colors last:border-0 hover:bg-stone-50/70;
+    }
+
+    .cifra {
+        @apply font-mono tabular-nums tracking-tight;
+    }
+
+    /* Esqueletos de carga */
+    .esqueleto {
+        @apply relative overflow-hidden rounded-md bg-stone-200/70;
+    }
+
+    .esqueleto::after {
+        content: '';
+        @apply absolute inset-0 animate-brillo bg-gradient-to-r from-transparent via-white/70 to-transparent;
+    }
+
+    /* Punto de estado que "respira" */
+    .punto-vivo {
+        @apply relative inline-flex size-2 shrink-0 rounded-full bg-current;
+    }
+
+    .punto-vivo::before {
+        content: '';
+        @apply absolute inset-0 animate-latido rounded-full bg-current;
+    }
+
+    /* Entrada escalonada de listas */
+    .escalonado > * {
+        @apply animate-aparecer;
+    }
+
+    .escalonado > *:nth-child(2) { animation-delay: 60ms; }
+    .escalonado > *:nth-child(3) { animation-delay: 120ms; }
+    .escalonado > *:nth-child(4) { animation-delay: 180ms; }
+    .escalonado > *:nth-child(5) { animation-delay: 240ms; }
+    .escalonado > *:nth-child(6) { animation-delay: 300ms; }
+    .escalonado > *:nth-child(n + 7) { animation-delay: 360ms; }
+
+    /* Fondo de cuadrícula fina, para superficies de marca */
+    .cuadricula {
+        background-image: linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+        background-size: 28px 28px;
+    }
+
+    .cuadricula-clara {
+        background-image: linear-gradient(rgba(41, 37, 36, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(41, 37, 36, 0.05) 1px, transparent 1px);
+        background-size: 28px 28px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

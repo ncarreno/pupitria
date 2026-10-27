@@ -62,11 +62,15 @@ class GeneradorFicha
             is_array($raw['criterios'] ?? null) ? $raw['criterios'] : [], $ciclo, [$area->codigo]
         );
 
+        $niveles = collect(is_array($raw['niveles'] ?? null) ? $raw['niveles'] : [])
+            ->filter(fn ($n) => is_array($n) && is_string($n['nivel'] ?? null))
+            ->keyBy('nivel');
+
         $contenido = [];
         foreach (array_keys(Ficha::NIVELES) as $nivel) {
             $contenido[$nivel] = [
-                'consigna' => $this->texto(data_get($raw, "niveles.{$nivel}.consigna")),
-                'bloques' => $this->bloques(data_get($raw, "niveles.{$nivel}.bloques")),
+                'consigna' => $this->texto(data_get($niveles, "{$nivel}.consigna")),
+                'bloques' => $this->bloques(data_get($niveles, "{$nivel}.bloques")),
             ];
         }
 
@@ -84,6 +88,8 @@ class GeneradorFicha
 
     /**
      * Mismo esquema de bloque para todos los tipos: así funciona igual con cualquier proveedor.
+     * Los niveles van en una lista con su nombre y no como tres propiedades: así el bloque aparece
+     * una sola vez y la gramática que compila Anthropic no supera su límite.
      *
      * @return array<string, mixed>
      */
@@ -110,20 +116,15 @@ class GeneradorFicha
             'derecha' => $textos()->required(),
         ]);
 
-        $nivel = fn () => $s->object([
-            'consigna' => $s->string()->required(),
-            'bloques' => $s->array()->items($bloque)->required(),
-        ])->required();
-
         return [
             'titulo' => $s->string()->required(),
             'criterios' => $textos()->required(),
             'ilustracion' => $s->string()->required(),
-            'niveles' => $s->object([
-                'refuerzo' => $nivel(),
-                'estandar' => $nivel(),
-                'ampliacion' => $nivel(),
-            ])->required(),
+            'niveles' => $s->array()->items($s->object([
+                'nivel' => $s->string()->enum(array_keys(Ficha::NIVELES))->required(),
+                'consigna' => $s->string()->required(),
+                'bloques' => $s->array()->items($bloque)->required(),
+            ]))->required(),
         ];
     }
 

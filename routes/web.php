@@ -24,18 +24,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Volt::route('curriculo', 'pages.curriculo')->name('curriculo');
 });
 
-Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->group(function () {
-    Volt::route('ia', 'pages.admin.ia')->name('admin.ia');
-    Volt::route('ia/uso', 'pages.admin.ia-uso')->name('admin.ia.uso');
-    Volt::route('cuentas', 'pages.admin.cuentas')->name('admin.cuentas');
-});
-
 /**
- * La batería de pruebas la ven y valoran el administrador y quien tenga el permiso (la beta tester).
+ * La administración va aparte de la app de las docentes: su propia entrada, su layout y su menú.
+ * Sin sesión, `/admin/*` lleva a `/admin/login` (ver `bootstrap/app.php`).
  */
-Route::middleware(['auth', 'verified', 'can:valorar-pruebas'])->prefix('admin')->group(function () {
-    Volt::route('ia/pruebas', 'pages.admin.pruebas.index')->name('admin.pruebas');
-    Volt::route('ia/pruebas/{caso}', 'pages.admin.pruebas.ver')->name('admin.pruebas.ver');
+Route::prefix('admin')->name('admin.')->group(function () {
+    Volt::route('login', 'pages.admin.login')->name('login');
+
+    Route::middleware(['auth', 'verified', 'admin'])->group(function () {
+        Volt::route('/', 'pages.admin.inicio')->name('inicio');
+        Volt::route('ia', 'pages.admin.ia')->name('ia');
+        Volt::route('ia/uso', 'pages.admin.ia-uso')->name('ia.uso');
+        Volt::route('cuentas', 'pages.admin.cuentas')->name('cuentas');
+    });
+
+    /**
+     * La batería de pruebas la ven y valoran el administrador y quien tenga el permiso (la beta tester).
+     */
+    Route::middleware(['auth', 'verified', 'can:valorar-pruebas'])->group(function () {
+        Volt::route('ia/pruebas', 'pages.admin.pruebas.index')->name('pruebas');
+        Volt::route('ia/pruebas/{caso}', 'pages.admin.pruebas.ver')->name('pruebas.ver');
+    });
 });
 
 require __DIR__.'/auth.php';

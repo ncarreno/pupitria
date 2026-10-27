@@ -56,7 +56,7 @@ class BateriaPruebasTest extends TestCase
             'items' => [], 'frases' => [], 'banco' => [], 'columnas' => [], 'filas' => [], 'izquierda' => [], 'derecha' => [],
         ]]];
 
-        return ['titulo' => 'El koala', 'criterios' => ['CN.C2.5.1', 'CN.C9.9.9'], 'ilustracion' => '', 'niveles' => ['refuerzo' => $nivel, 'estandar' => $nivel, 'ampliacion' => $nivel]];
+        return ['titulo' => 'El koala', 'criterios' => ['CN.C2.5.1', 'CN.C9.9.9'], 'ilustracion' => '', 'niveles' => [['nivel' => 'refuerzo'] + $nivel, ['nivel' => 'estandar'] + $nivel, ['nivel' => 'ampliacion'] + $nivel]];
     }
 
     public function test_cada_proveedor_genera_su_resultado_limpio_sin_crear_proyectos_ni_fichas(): void
@@ -136,7 +136,7 @@ class BateriaPruebasTest extends TestCase
         $this->actingAs($valoradora)->get(route('admin.pruebas'))->assertOk()->assertSee($caso->nombre);
         $this->actingAs($valoradora)->get(route('admin.pruebas.ver', $caso))->assertOk();
         $this->actingAs($valoradora)->get(route('dashboard'))->assertOk()->assertSee('Valorar pruebas');
-        $this->actingAs($valoradora)->get(route('admin.ia'))->assertForbidden();
+        $this->actingAs($valoradora)->get(route('admin.ia'))->assertRedirect(route('admin.login'));
 
         $this->actingAs(User::factory()->admin()->create())->get(route('admin.pruebas'))->assertOk();
     }

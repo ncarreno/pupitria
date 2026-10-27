@@ -11,7 +11,7 @@ use Livewire\Volt\Component;
  * Panel del administrador: qué proveedor y modelo usa cada tarea, en qué orden (principal y
  * respaldos), con qué tiempo máximo, y un botón para probar cada fila con una llamada corta.
  */
-new #[Layout('layouts.app')] class extends Component
+new #[Layout('layouts.admin')] class extends Component
 {
     /** @var array<int, string> Modelo por id de fila; vacío = el modelo por defecto del proveedor. */
     public array $modelos = [];
@@ -208,101 +208,129 @@ new #[Layout('layouts.app')] class extends Component
 
 <div>
     <x-slot name="header">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Configuración de la IA</h2>
-                <p class="text-sm text-gray-500 mt-1">El primer proveedor activo de cada tarea es el principal. Si falla o limita la tasa, responde el siguiente. Los cambios se aplican en la siguiente generación.</p>
-            </div>
-            <div class="flex gap-4 text-sm">
-                <a href="{{ route('admin.ia.uso') }}" wire:navigate class="text-indigo-700 hover:underline">Uso de la IA</a>
-                <a href="{{ route('admin.pruebas') }}" wire:navigate class="text-indigo-700 hover:underline">Batería de pruebas</a>
-            </div>
-        </div>
+        <x-cabecera antetitulo="Administración" titulo="Configuración de la IA">
+            El primer proveedor activo de cada tarea es el principal. Si falla o limita la tasa, responde el siguiente. Los cambios se aplican en la siguiente generación.
+        </x-cabecera>
     </x-slot>
 
-    <div class="py-8">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <x-action-message on="ia-guardada" class="text-sm text-green-700">Guardado.</x-action-message>
+    <div class="contenedor space-y-5">
+        <x-action-message on="ia-guardada" class="aviso-pino">Guardado.</x-action-message>
 
-            @foreach (\App\Models\IaConfiguracion::TAREAS as $tarea => $nombreTarea)
-                @php
-                    $filas = $this->configuraciones[$tarea] ?? collect();
-                    $activas = $filas->where('activo', true)->values();
-                    $disponibles = collect(\App\Models\IaConfiguracion::proveedoresPara($tarea))->except($filas->pluck('proveedor')->all());
-                @endphp
+        @foreach (\App\Models\IaConfiguracion::TAREAS as $tarea => $nombreTarea)
+            @php
+                $filas = $this->configuraciones[$tarea] ?? collect();
+                $activas = $filas->where('activo', true)->values();
+                $disponibles = collect(\App\Models\IaConfiguracion::proveedoresPara($tarea))->except($filas->pluck('proveedor')->all());
+            @endphp
 
-                <section wire:key="tarea-{{ $tarea }}" class="bg-white shadow-sm sm:rounded-lg p-5 space-y-4">
-                    <div class="flex flex-wrap items-baseline justify-between gap-2">
-                        <h3 class="font-semibold text-gray-900">{{ $nombreTarea }}</h3>
-                        <span class="text-xs text-gray-500">Tiempo máximo: hasta {{ \App\Models\IaConfiguracion::timeoutMaximo($tarea) }} s</span>
+            <section wire:key="tarea-{{ $tarea }}" class="tarjeta">
+                <div class="tarjeta-cabecera">
+                    <div class="flex items-center gap-3">
+                        <span class="inline-flex size-9 items-center justify-center rounded-xl bg-stone-50 text-stone-600 ring-1 ring-inset ring-stone-200">
+                            <x-icono :nombre="['proyecto' => 'tablero', 'ajuste' => 'chispa', 'ficha' => 'ficha', 'imagen' => 'imagen', 'prueba' => 'matraz'][$tarea] ?? 'ajustes'" class="size-[18px]" />
+                        </span>
+                        <h3 class="tarjeta-titulo">{{ $nombreTarea }}</h3>
                     </div>
+                    <span class="inline-flex items-center gap-1.5 text-xs text-stone-500"><x-icono nombre="reloj" class="size-3.5" />Tiempo máximo: hasta {{ \App\Models\IaConfiguracion::timeoutMaximo($tarea) }} s</span>
+                </div>
 
-                    @if ($activas->isEmpty())
-                        <p class="rounded-md bg-red-50 p-3 text-sm text-red-800">No hay ningún proveedor activo: esta tarea no funcionará.</p>
-                    @endif
-                    <x-input-error :messages="$errors->get('tarea.'.$tarea)" />
+                @if ($activas->isEmpty())
+                    <div class="px-5 pt-4 sm:px-6">
+                        <p class="aviso-rojo"><x-icono nombre="aviso" class="size-5 text-red-700" />No hay ningún proveedor activo: esta tarea no funcionará.</p>
+                    </div>
+                @endif
+                <x-input-error class="px-5 pt-3 sm:px-6" :messages="$errors->get('tarea.'.$tarea)" />
 
-                    <ul class="divide-y divide-gray-100">
-                        @foreach ($filas as $f)
-                            @php($posicion = $activas->search(fn ($a) => $a->id === $f->id))
-                            <li wire:key="fila-{{ $f->id }}" class="py-3 space-y-2">
-                                <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-                                    <div class="min-w-48">
-                                        <span class="font-medium text-gray-900">{{ \App\Models\IaConfiguracion::proveedoresPara($tarea)[$f->proveedor] ?? $f->proveedor }}</span>
-                                        <span class="ms-1 rounded-full px-2 py-0.5 text-xs {{ $posicion === 0 ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-700' }}">
-                                            {{ ! $f->activo ? 'Desactivado' : ($posicion === 0 ? 'Principal' : 'Respaldo '.$posicion) }}
-                                        </span>
-                                        @unless ($f->tieneClave())
-                                            <span class="ms-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800" title="Falta la clave en .env">Sin clave</span>
-                                        @endunless
-                                    </div>
-
-                                    <form wire:submit="guardar({{ $f->id }})" class="flex flex-wrap items-center gap-2">
-                                        <x-text-input wire:model="modelos.{{ $f->id }}" type="text" class="w-56 text-sm" placeholder="Modelo por defecto" aria-label="Modelo" />
-                                        <x-text-input wire:model="timeouts.{{ $f->id }}" type="number" min="10" :max="\App\Models\IaConfiguracion::timeoutMaximo($tarea)" class="w-24 text-sm" aria-label="Tiempo máximo en segundos" />
-                                        <span class="text-xs text-gray-500">s</span>
-                                        <x-secondary-button type="submit">Guardar</x-secondary-button>
-                                    </form>
-
-                                    <div class="flex flex-wrap items-center gap-3 text-sm">
-                                        <button type="button" wire:click="mover({{ $f->id }}, -1)" @disabled($loop->first) class="text-gray-700 hover:underline disabled:opacity-40" aria-label="Subir">↑</button>
-                                        <button type="button" wire:click="mover({{ $f->id }}, 1)" @disabled($loop->last) class="text-gray-700 hover:underline disabled:opacity-40" aria-label="Bajar">↓</button>
-                                        <button type="button" wire:click="alternar({{ $f->id }})" class="text-indigo-700 hover:underline">{{ $f->activo ? 'Desactivar' : 'Activar' }}</button>
-                                        <button type="button" wire:click="probar({{ $f->id }})" wire:loading.attr="disabled" wire:target="probar({{ $f->id }})" class="text-indigo-700 hover:underline">Probar</button>
-                                        <button type="button" wire:click="quitar({{ $f->id }})" wire:confirm="¿Quitar este proveedor de la tarea?" class="text-red-700 hover:underline">Quitar</button>
-                                        <span wire:loading wire:target="probar({{ $f->id }})" class="text-gray-500">Probando…</span>
-                                    </div>
+                <ul class="divide-y divide-stone-100">
+                    @foreach ($filas as $f)
+                        @php $posicion = $activas->search(fn ($a) => $a->id === $f->id); @endphp
+                        <li wire:key="fila-{{ $f->id }}" @class(['space-y-3 px-5 py-4 sm:px-6', 'bg-stone-50/60' => ! $f->activo])>
+                            <div class="grid items-center gap-x-6 gap-y-3 xl:grid-cols-[minmax(0,15rem)_minmax(0,1fr)_auto]">
+                                <div class="flex min-w-0 flex-wrap items-center gap-2">
+                                    <span class="cifra inline-flex size-6 items-center justify-center rounded-md bg-stone-100 text-[11px] font-medium text-stone-500">{{ $loop->iteration }}</span>
+                                    <span @class(['font-medium', 'text-stone-950' => $f->activo, 'text-stone-400 line-through decoration-stone-300' => ! $f->activo])>{{ \App\Models\IaConfiguracion::proveedoresPara($tarea)[$f->proveedor] ?? $f->proveedor }}</span>
+                                    <span @class([
+                                        'insignia-pino' => $f->activo && $posicion === 0,
+                                        'insignia-neutra' => ! ($f->activo && $posicion === 0),
+                                    ])>
+                                        @if ($f->activo && $posicion === 0)<span class="punto-vivo size-1.5"></span>@endif
+                                        {{ ! $f->activo ? 'Desactivado' : ($posicion === 0 ? 'Principal' : 'Respaldo '.$posicion) }}
+                                    </span>
+                                    @unless ($f->tieneClave())
+                                        <span class="insignia-ambar" title="Falta la clave en .env"><x-icono nombre="llave" class="size-3" />Sin clave</span>
+                                    @endunless
                                 </div>
-                                <x-input-error :messages="array_merge($errors->get('modelos.'.$f->id), $errors->get('timeouts.'.$f->id))" />
 
-                                @if ($prueba && $prueba['id'] === $f->id)
-                                    <div class="rounded-md p-3 text-sm {{ $prueba['ok'] ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800' }}">
+                                @php
+                                    $sugeridos = \App\Models\IaConfiguracion::modelosPara($tarea, $f->proveedor);
+                                    $porDefecto = \App\Models\IaConfiguracion::modeloPorDefecto($tarea, $f->proveedor);
+                                    $modelo = $modelos[$f->id] ?? '';
+                                @endphp
+                                <form wire:submit="guardar({{ $f->id }})" x-data="{ otro: @js(filled($modelo) && ! array_key_exists($modelo, $sugeridos)) }" class="flex flex-wrap items-center gap-2">
+                                    <select x-show="! otro" wire:model="modelos.{{ $f->id }}" class="campo w-full py-2 font-mono text-[13px] sm:w-72" aria-label="Modelo">
+                                        <option value="">Por defecto{{ $porDefecto ? ' ('.$porDefecto.')' : '' }}</option>
+                                        @foreach ($sugeridos as $id => $etiqueta)
+                                            <option value="{{ $id }}">{{ $id }} · {{ $etiqueta }}</option>
+                                        @endforeach
+                                        @if (filled($modelo) && ! array_key_exists($modelo, $sugeridos))
+                                            <option value="{{ $modelo }}">{{ $modelo }}</option>
+                                        @endif
+                                    </select>
+                                    <x-text-input x-show="otro" x-cloak wire:model="modelos.{{ $f->id }}" type="text" class="w-full py-2 font-mono text-[13px] sm:w-72" placeholder="Nombre exacto del modelo" aria-label="Otro modelo" />
+                                    <button type="button" x-on:click="otro = ! otro" class="boton-fantasma boton-sm" x-text="otro ? 'Lista' : 'Otro'">Otro</button>
+                                    <div class="relative">
+                                        <x-text-input wire:model="timeouts.{{ $f->id }}" type="number" min="10" :max="\App\Models\IaConfiguracion::timeoutMaximo($tarea)" class="cifra w-24 py-2 pe-7 text-[13px]" aria-label="Tiempo máximo en segundos" />
+                                        <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400">s</span>
+                                    </div>
+                                    <x-secondary-button type="submit" class="boton-sm py-2">Guardar</x-secondary-button>
+                                </form>
+
+                                <div class="flex flex-wrap items-center gap-1">
+                                    <button type="button" wire:click="mover({{ $f->id }}, -1)" @disabled($loop->first) class="boton-icono" aria-label="Subir"><x-icono nombre="flecha-arriba" class="size-4" /></button>
+                                    <button type="button" wire:click="mover({{ $f->id }}, 1)" @disabled($loop->last) class="boton-icono" aria-label="Bajar"><x-icono nombre="flecha-abajo" class="size-4" /></button>
+                                    <span class="mx-1 h-5 w-px bg-stone-200"></span>
+                                    <button type="button" wire:click="alternar({{ $f->id }})" class="boton-fantasma boton-sm">{{ $f->activo ? 'Desactivar' : 'Activar' }}</button>
+                                    <button type="button" wire:click="probar({{ $f->id }})" wire:loading.attr="disabled" wire:target="probar({{ $f->id }})" class="boton-fantasma boton-sm text-pino-700 hover:text-pino-900">
+                                        <x-icono nombre="matraz" class="size-4" wire:loading.remove wire:target="probar({{ $f->id }})" />
+                                        <span class="punto-vivo" wire:loading wire:target="probar({{ $f->id }})"></span>
+                                        Probar
+                                    </button>
+                                    <button type="button" wire:click="quitar({{ $f->id }})" wire:confirm="¿Quitar este proveedor de la tarea?" class="boton-icono hover:bg-red-50 hover:text-red-700" aria-label="Quitar" title="Quitar"><x-icono nombre="papelera" class="size-4" /></button>
+                                    <span wire:loading wire:target="probar({{ $f->id }})" class="ms-1 text-xs text-stone-500">Probando…</span>
+                                </div>
+                            </div>
+                            <x-input-error :messages="array_merge($errors->get('modelos.'.$f->id), $errors->get('timeouts.'.$f->id))" />
+
+                            @if ($prueba && $prueba['id'] === $f->id)
+                                <div @class(['animate-aparecer', 'aviso-pino' => $prueba['ok'], 'aviso-rojo' => ! $prueba['ok']])>
+                                    <x-icono :nombre="$prueba['ok'] ? 'check-circulo' : 'aviso'" @class(['size-5', 'text-pino-700' => $prueba['ok'], 'text-red-700' => ! $prueba['ok']]) />
+                                    <div class="min-w-0 break-words">
                                         {{ $prueba['ok'] ? 'Funciona: ' : 'Ha fallado: ' }}{{ $prueba['texto'] }}
                                         @if ($prueba['url'])
-                                            <img src="{{ $prueba['url'] }}" alt="Imagen de prueba" class="mt-2 max-h-40 rounded">
+                                            <img src="{{ $prueba['url'] }}" alt="Imagen de prueba" class="mt-3 max-h-40 rounded-lg ring-1 ring-black/5">
                                         @endif
                                     </div>
-                                @endif
-                            </li>
-                        @endforeach
-                    </ul>
+                                </div>
+                            @endif
+                        </li>
+                    @endforeach
+                </ul>
 
-                    @if ($disponibles->isNotEmpty())
-                        <form wire:submit="anadir('{{ $tarea }}')" class="flex flex-wrap items-center gap-2 pt-1">
-                            <select wire:model="nuevo.{{ $tarea }}" class="rounded-md border-gray-300 text-sm" aria-label="Proveedor que añadir">
-                                <option value="">Añadir proveedor…</option>
-                                @foreach ($disponibles as $clave => $nombre)
-                                    <option value="{{ $clave }}">{{ $nombre }}</option>
-                                @endforeach
-                            </select>
-                            <x-secondary-button type="submit">Añadir</x-secondary-button>
-                            <x-input-error :messages="$errors->get('nuevo.'.$tarea)" />
-                        </form>
-                    @endif
-                </section>
-            @endforeach
+                @if ($disponibles->isNotEmpty())
+                    <form wire:submit="anadir('{{ $tarea }}')" class="flex flex-wrap items-center gap-2 border-t border-stone-100 bg-stone-50/60 px-5 py-3.5 sm:px-6">
+                        <select wire:model="nuevo.{{ $tarea }}" class="campo w-auto py-2 text-[13px]" aria-label="Proveedor que añadir">
+                            <option value="">Añadir proveedor…</option>
+                            @foreach ($disponibles as $clave => $nombre)
+                                <option value="{{ $clave }}">{{ $nombre }}</option>
+                            @endforeach
+                        </select>
+                        <x-secondary-button type="submit" class="boton-sm py-2"><x-icono nombre="mas" class="size-4" />Añadir</x-secondary-button>
+                        <x-input-error :messages="$errors->get('nuevo.'.$tarea)" />
+                    </form>
+                @endif
+            </section>
+        @endforeach
 
-            <p class="text-xs text-gray-500">Cada intento usa el tiempo máximo más alto de la tarea. Si el principal lo agota, puede que el respaldo no llegue a responder antes de que la cola corte el trabajo: el respaldo sirve sobre todo para errores rápidos (caídas o límite de tasa).</p>
-        </div>
+        <p class="flex items-start gap-2 text-[13px] leading-relaxed text-stone-500"><x-icono nombre="info" class="mt-0.5 size-4 text-stone-400" />Cada intento usa el tiempo máximo más alto de la tarea. Si el principal lo agota, puede que el respaldo no llegue a responder antes de que la cola corte el trabajo: el respaldo sirve sobre todo para errores rápidos (caídas o límite de tasa).</p>
     </div>
 </div>

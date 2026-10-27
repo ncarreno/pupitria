@@ -12,7 +12,7 @@ use Livewire\Volt\Component;
  * Uso de la IA en un periodo, a partir de `generaciones`: por tarea, cuántas fallan o responde
  * el respaldo; por proveedor y modelo, duración y tokens. Sin costes en euros por ahora.
  */
-new #[Layout('layouts.app')] class extends Component
+new #[Layout('layouts.admin')] class extends Component
 {
     public const PERIODOS = [7 => 'Últimos 7 días', 30 => 'Últimos 30 días'];
 
@@ -100,108 +100,131 @@ new #[Layout('layouts.app')] class extends Component
 
 <div>
     <x-slot name="header">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">Uso de la IA</h2>
-                <p class="text-sm text-gray-500 mt-1">Sacado del registro de generaciones. Por ahora en tokens; sin coste en euros.</p>
-            </div>
-            <div class="flex gap-4 text-sm">
-                <a href="{{ route('admin.ia') }}" wire:navigate class="text-indigo-700 hover:underline">Configuración</a>
-                <a href="{{ route('admin.pruebas') }}" wire:navigate class="text-indigo-700 hover:underline">Batería de pruebas</a>
-            </div>
-        </div>
+        <x-cabecera antetitulo="Administración" titulo="Uso de la IA">
+            Sacado del registro de generaciones. Por ahora en tokens; sin coste en euros.
+        </x-cabecera>
     </x-slot>
 
-    <div class="py-8">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <div class="inline-flex rounded-md border border-gray-300 bg-white overflow-hidden" role="group" aria-label="Periodo">
-                @foreach ($this::PERIODOS as $n => $nombre)
-                    <button type="button" wire:click="$set('dias', {{ $n }})" aria-pressed="{{ $dias === $n ? 'true' : 'false' }}"
-                        class="px-4 py-2 text-sm {{ $dias === $n ? 'bg-gray-800 text-white font-semibold' : 'text-gray-700 hover:bg-gray-50' }}">{{ $nombre }}</button>
+    <div class="contenedor space-y-5">
+        <div class="segmentado" role="group" aria-label="Periodo">
+            @foreach ($this::PERIODOS as $n => $nombre)
+                <button type="button" wire:click="$set('dias', {{ $n }})" aria-pressed="{{ $dias === $n ? 'true' : 'false' }}"
+                    @class(['segmento', 'segmento-activo' => $dias === $n])>{{ $nombre }}</button>
+            @endforeach
+        </div>
+
+        <div class="space-y-5" wire:loading.class="opacity-60" wire:target="dias">
+            @if ($this->resumen->isEmpty())
+                <x-estado-vacio icono="grafico" titulo="Sin actividad">No hay generaciones en este periodo.</x-estado-vacio>
+            @endif
+
+            <div class="grid gap-5 escalonado">
+                @foreach ($this->resumen as $tarea => $r)
+                    @php
+                        $terminadas = $r['total'] - $r['sin_terminar'];
+                        $directas = max(0, $terminadas - $r['fallidas'] - $r['respaldo']);
+                        $ancho = fn (int $n) => $r['total'] ? round($n / $r['total'] * 100, 2) : 0;
+                    @endphp
+                    <section wire:key="uso-{{ $tarea }}" class="tarjeta">
+                        <div class="grid gap-5 px-5 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:items-center">
+                            <div>
+                                <h3 class="tarjeta-titulo">{{ \App\Models\IaConfiguracion::nombreTarea($tarea) }}</h3>
+                                <p class="mt-1 text-sm text-stone-600">
+                                    <span class="cifra font-medium text-stone-950">{{ $this->numero($r['total']) }}</span> generaciones
+                                    · <span @class(['text-red-700 font-medium' => $r['fallidas'] > 0])>{{ $this->porcentaje($r['fallidas'], $terminadas) }} fallidas</span>
+                                    · {{ $this->porcentaje($r['respaldo'], $terminadas - $r['fallidas']) }} por el respaldo
+                                    @if ($r['sin_terminar']) · {{ $r['sin_terminar'] }} sin terminar @endif
+                                </p>
+                            </div>
+                            <div aria-hidden="true">
+                                <div class="flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-stone-100">
+                                    @if ($directas)<span class="bg-pino-600" style="width: {{ $ancho($directas) }}%"></span>@endif
+                                    @if ($r['respaldo'])<span class="bg-amber-400" style="width: {{ $ancho($r['respaldo']) }}%"></span>@endif
+                                    @if ($r['fallidas'])<span class="bg-red-500" style="width: {{ $ancho($r['fallidas']) }}%"></span>@endif
+                                    @if ($r['sin_terminar'])<span class="bg-stone-300" style="width: {{ $ancho($r['sin_terminar']) }}%"></span>@endif
+                                </div>
+                                <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-500">
+                                    <span class="inline-flex items-center gap-1.5"><i class="size-2 rounded-full bg-pino-600"></i>Principal</span>
+                                    <span class="inline-flex items-center gap-1.5"><i class="size-2 rounded-full bg-amber-400"></i>Respaldo</span>
+                                    <span class="inline-flex items-center gap-1.5"><i class="size-2 rounded-full bg-red-500"></i>Fallidas</span>
+                                    @if ($r['sin_terminar'])<span class="inline-flex items-center gap-1.5"><i class="size-2 rounded-full bg-stone-300"></i>Sin terminar</span>@endif
+                                </div>
+                            </div>
+                        </div>
+
+                        @if ($r['proveedores']->isNotEmpty())
+                            <div class="overflow-x-auto border-t border-stone-100">
+                                <table class="tabla">
+                                    <thead>
+                                        <tr>
+                                            <th>Proveedor y modelo</th>
+                                            <th class="!text-right">Completadas</th>
+                                            <th class="!text-right">Duración media</th>
+                                            <th class="!text-right">Tokens entrada</th>
+                                            <th class="!text-right">Salida</th>
+                                            <th class="!text-right">De caché</th>
+                                            <th class="!text-right">Ids descartados</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($r['proveedores'] as $p)
+                                            <tr>
+                                                <td><span class="font-medium text-stone-950">{{ $p['proveedor'] }}</span> <span class="font-mono text-xs text-stone-500">{{ $p['modelo'] }}</span></td>
+                                                <td class="cifra text-right">{{ $this->numero($p['total']) }}</td>
+                                                <td class="cifra text-right">{{ $this->segundos($p['duracion_media']) }}</td>
+                                                <td class="cifra text-right">{{ $this->numero($p['entrada']) }}</td>
+                                                <td class="cifra text-right">{{ $this->numero($p['salida']) }}</td>
+                                                <td class="cifra text-right">{{ $this->numero($p['cache']) }}</td>
+                                                <td class="cifra text-right">{{ $this->numero($p['descartados']) }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </section>
                 @endforeach
             </div>
 
-            @if ($this->resumen->isEmpty())
-                <div class="bg-white shadow-sm sm:rounded-lg p-6 text-sm text-gray-600">No hay generaciones en este periodo.</div>
-            @endif
-
-            @foreach ($this->resumen as $tarea => $r)
-                @php($terminadas = $r['total'] - $r['sin_terminar'])
-                <section wire:key="uso-{{ $tarea }}" class="bg-white shadow-sm sm:rounded-lg p-5 space-y-3">
-                    <div class="flex flex-wrap items-baseline justify-between gap-2">
-                        <h3 class="font-semibold text-gray-900">{{ \App\Models\IaConfiguracion::nombreTarea($tarea) }}</h3>
-                        <p class="text-sm text-gray-600">
-                            {{ $this->numero($r['total']) }} generaciones
-                            · <span @class(['text-red-700 font-medium' => $r['fallidas'] > 0])>{{ $this->porcentaje($r['fallidas'], $terminadas) }} fallidas</span>
-                            · {{ $this->porcentaje($r['respaldo'], $terminadas - $r['fallidas']) }} por el respaldo
-                            @if ($r['sin_terminar']) · {{ $r['sin_terminar'] }} sin terminar @endif
-                        </p>
-                    </div>
-
-                    @if ($r['proveedores']->isNotEmpty())
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm">
-                                <thead class="text-left text-xs uppercase tracking-wide text-gray-500">
-                                    <tr>
-                                        <th class="py-2 pe-4">Proveedor y modelo</th>
-                                        <th class="py-2 pe-4 text-right">Completadas</th>
-                                        <th class="py-2 pe-4 text-right">Duración media</th>
-                                        <th class="py-2 pe-4 text-right">Tokens entrada</th>
-                                        <th class="py-2 pe-4 text-right">Salida</th>
-                                        <th class="py-2 pe-4 text-right">De caché</th>
-                                        <th class="py-2 text-right">Ids descartados</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100">
-                                    @foreach ($r['proveedores'] as $p)
-                                        <tr>
-                                            <td class="py-2 pe-4"><span class="font-medium text-gray-900">{{ $p['proveedor'] }}</span> <span class="text-gray-500">{{ $p['modelo'] }}</span></td>
-                                            <td class="py-2 pe-4 text-right">{{ $this->numero($p['total']) }}</td>
-                                            <td class="py-2 pe-4 text-right">{{ $this->segundos($p['duracion_media']) }}</td>
-                                            <td class="py-2 pe-4 text-right">{{ $this->numero($p['entrada']) }}</td>
-                                            <td class="py-2 pe-4 text-right">{{ $this->numero($p['salida']) }}</td>
-                                            <td class="py-2 pe-4 text-right">{{ $this->numero($p['cache']) }}</td>
-                                            <td class="py-2 text-right">{{ $this->numero($p['descartados']) }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @endif
-                </section>
-            @endforeach
-
-            <section class="bg-white shadow-sm sm:rounded-lg p-5 space-y-3">
-                <h3 class="font-semibold text-gray-900">Últimas generaciones</h3>
+            <section class="tarjeta">
+                <div class="tarjeta-cabecera">
+                    <h3 class="tarjeta-titulo">Últimas generaciones</h3>
+                    <x-icono nombre="historial" class="size-4 text-stone-400" />
+                </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead class="text-left text-xs uppercase tracking-wide text-gray-500">
+                    <table class="tabla">
+                        <thead>
                             <tr>
-                                <th class="py-2 pe-4">Fecha</th>
-                                <th class="py-2 pe-4">Tarea</th>
-                                <th class="py-2 pe-4">Proveedor y modelo</th>
-                                <th class="py-2 pe-4">Estado</th>
-                                <th class="py-2 pe-4 text-right">Duración</th>
-                                <th class="py-2 text-right">Tokens</th>
+                                <th>Fecha</th>
+                                <th>Tarea</th>
+                                <th>Proveedor y modelo</th>
+                                <th>Estado</th>
+                                <th class="!text-right">Duración</th>
+                                <th class="!text-right">Tokens</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100">
+                        <tbody>
                             @forelse ($this->ultimas as $g)
                                 <tr wire:key="g-{{ $g->id }}" class="align-top">
-                                    <td class="py-2 pe-4 whitespace-nowrap text-gray-600">{{ $g->created_at->format('d/m H:i') }}</td>
-                                    <td class="py-2 pe-4">{{ \App\Models\IaConfiguracion::nombreTarea($g->tarea) }}</td>
-                                    <td class="py-2 pe-4">{{ $g->proveedor ?? '—' }} <span class="text-gray-500">{{ $g->modelo }}</span>@if ($g->respaldo) <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">respaldo</span>@endif</td>
-                                    <td class="py-2 pe-4">
-                                        <span @class(['text-red-700' => $g->estado === 'fallida', 'text-gray-500' => $g->estado === 'pendiente'])>{{ $g->estado }}</span>
+                                    <td class="cifra whitespace-nowrap text-stone-500">{{ $g->created_at->format('d/m H:i') }}</td>
+                                    <td class="text-stone-800">{{ \App\Models\IaConfiguracion::nombreTarea($g->tarea) }}</td>
+                                    <td>{{ $g->proveedor ?? '—' }} <span class="font-mono text-xs text-stone-500">{{ $g->modelo }}</span>@if ($g->respaldo) <span class="insignia-ambar ms-1">respaldo</span>@endif</td>
+                                    <td>
+                                        <span @class([
+                                            'insignia',
+                                            'bg-red-50 text-red-700 ring-red-200' => $g->estado === 'fallida',
+                                            'bg-stone-100 text-stone-600 ring-stone-200' => $g->estado === 'pendiente',
+                                            'bg-pino-50 text-pino-800 ring-pino-200' => ! in_array($g->estado, ['fallida', 'pendiente']),
+                                        ])>{{ $g->estado }}</span>
                                         @if ($g->error)
-                                            <p class="mt-1 text-xs text-red-700 break-all">{{ str($g->error)->limit(200) }}</p>
+                                            <p class="mt-1.5 max-w-md break-all text-xs text-red-700">{{ str($g->error)->limit(200) }}</p>
                                         @endif
                                     </td>
-                                    <td class="py-2 pe-4 text-right whitespace-nowrap">{{ $this->segundos($g->duracion_ms) }}</td>
-                                    <td class="py-2 text-right whitespace-nowrap">{{ $this->numero($g->tokens_entrada) }} / {{ $this->numero($g->tokens_salida) }}</td>
+                                    <td class="cifra whitespace-nowrap text-right">{{ $this->segundos($g->duracion_ms) }}</td>
+                                    <td class="cifra whitespace-nowrap text-right">{{ $this->numero($g->tokens_entrada) }} / {{ $this->numero($g->tokens_salida) }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="6" class="py-3 text-gray-500">Todavía no hay generaciones.</td></tr>
+                                <tr><td colspan="6" class="py-8 text-center text-stone-500">Todavía no hay generaciones.</td></tr>
                             @endforelse
                         </tbody>
                     </table>

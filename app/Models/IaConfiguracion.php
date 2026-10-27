@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Laravel\Ai\Ai;
+use Throwable;
 
 #[Fillable(['tarea', 'proveedor', 'modelo', 'orden', 'timeout', 'activo'])]
 class IaConfiguracion extends Model
@@ -70,6 +72,40 @@ class IaConfiguracion extends Model
     public static function nombreTarea(string $tarea): string
     {
         return (self::TAREAS + ['bateria' => 'Batería de pruebas'])[$tarea] ?? $tarea;
+    }
+
+    /**
+     * Modelos que se ofrecen en el panel para un proveedor, sacados del Laravel AI SDK para que
+     * sigan al día al actualizarlo: el más barato, el de por defecto y el más potente (texto)
+     * o el de por defecto (imágenes). Se puede escribir cualquier otro a mano.
+     *
+     * @return array<string, string> [modelo => etiqueta]
+     */
+    public static function modelosPara(string $tarea, string $proveedor): array
+    {
+        try {
+            if ($tarea === 'imagen') {
+                return [Ai::imageProvider($proveedor)->defaultImageModel() => 'por defecto'];
+            }
+
+            $sdk = Ai::textProvider($proveedor);
+            $etiquetas = [];
+            $etiquetas[$sdk->cheapestTextModel()][] = 'económico';
+            $etiquetas[$sdk->defaultTextModel()][] = 'por defecto';
+            $etiquetas[$sdk->smartestTextModel()][] = 'el más potente';
+        } catch (Throwable) {
+            return [];
+        }
+
+        return array_map(fn (array $e) => implode(', ', $e), $etiquetas);
+    }
+
+    /**
+     * El modelo que se usa con el campo vacío.
+     */
+    public static function modeloPorDefecto(string $tarea, string $proveedor): ?string
+    {
+        return collect(self::modelosPara($tarea, $proveedor))->search(fn (string $e) => str_contains($e, 'por defecto')) ?: null;
     }
 
     public static function timeoutMaximo(string $tarea): int

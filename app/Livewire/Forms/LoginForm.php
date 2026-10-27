@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Forms;
 
+use App\Models\User;
+use Closure;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -24,13 +26,17 @@ class LoginForm extends Form
     /**
      * Attempt to authenticate the request's credentials.
      *
+     * Con `$puedeEntrar` solo entra la cuenta que la cumpla; si no, falla como una contraseña equivocada.
+     *
+     * @param  (Closure(User): bool)|null  $puedeEntrar
+     *
      * @throws ValidationException
      */
-    public function authenticate(): void
+    public function authenticate(?Closure $puedeEntrar = null): void
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only(['email', 'password']), $this->remember)) {
+        if (! Auth::attemptWhen($this->only(['email', 'password']), $puedeEntrar, $this->remember)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

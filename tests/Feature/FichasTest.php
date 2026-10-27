@@ -46,6 +46,21 @@ class FichasTest extends TestCase
      */
     private function respuestaIA(): array
     {
+        return [
+            'titulo' => 'El koala y su bosque',
+            'criterios' => ['CN.C2.5.1', 'CN.C9.9.9', 'LCL.C2.4.1'],
+            'ilustracion' => 'Un koala dormido en un eucalipto',
+            'niveles' => collect($this->contenido())->map(fn (array $n, string $nivel) => ['nivel' => $nivel] + $n)->values()->all(),
+        ];
+    }
+
+    /**
+     * Los tres niveles tal y como se guardan en la ficha.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private function contenido(): array
+    {
         $nivel = fn (string $lectura) => [
             'consigna' => 'Lee el texto y responde.',
             'bloques' => [
@@ -56,14 +71,9 @@ class FichasTest extends TestCase
         ];
 
         return [
-            'titulo' => 'El koala y su bosque',
-            'criterios' => ['CN.C2.5.1', 'CN.C9.9.9', 'LCL.C2.4.1'],
-            'ilustracion' => 'Un koala dormido en un eucalipto',
-            'niveles' => [
-                'refuerzo' => $nivel('El koala vive en Australia.'),
-                'estandar' => $nivel('El koala vive en los bosques de eucaliptos del este de Australia.'),
-                'ampliacion' => $nivel('El koala depende de los bosques de eucaliptos.'),
-            ],
+            'refuerzo' => $nivel('El koala vive en Australia.'),
+            'estandar' => $nivel('El koala vive en los bosques de eucaliptos del este de Australia.'),
+            'ampliacion' => $nivel('El koala depende de los bosques de eucaliptos.'),
         ];
     }
 
@@ -177,7 +187,7 @@ class FichasTest extends TestCase
     {
         Storage::fake('public');
         $ficha = Ficha::factory()->create([
-            'estado' => 'listo', 'contenido' => $this->respuestaIA()['niveles'],
+            'estado' => 'listo', 'contenido' => $this->contenido(),
             'con_imagen' => true, 'imagen_por' => 'prompt', 'prompt_imagen' => 'Crea una imagen de un koala.',
         ]);
 
@@ -203,7 +213,7 @@ class FichasTest extends TestCase
     {
         Storage::fake('public');
         $ficha = Ficha::factory()->create([
-            'estado' => 'listo', 'contenido' => $this->respuestaIA()['niveles'],
+            'estado' => 'listo', 'contenido' => $this->contenido(),
             'con_imagen' => true, 'imagen_por' => 'prompt', 'prompt_imagen' => 'x',
         ]);
 
@@ -265,7 +275,7 @@ class FichasTest extends TestCase
 
     public function test_solo_la_autora_ve_y_edita_la_ficha(): void
     {
-        $ficha = Ficha::factory()->create(['estado' => 'listo', 'contenido' => $this->respuestaIA()['niveles']]);
+        $ficha = Ficha::factory()->create(['estado' => 'listo', 'contenido' => $this->contenido()]);
 
         $this->actingAs(User::factory()->create())->get(route('fichas.ver', $ficha))->assertForbidden();
         $this->actingAs($ficha->user)->get(route('fichas.ver', $ficha))->assertOk()->assertSee('¿Quién es el koala?');
@@ -273,7 +283,7 @@ class FichasTest extends TestCase
 
     public function test_edicion_a_mano_solo_en_textos_permitidos(): void
     {
-        $ficha = Ficha::factory()->create(['estado' => 'listo', 'contenido' => $this->respuestaIA()['niveles']]);
+        $ficha = Ficha::factory()->create(['estado' => 'listo', 'contenido' => $this->contenido()]);
 
         Volt::actingAs($ficha->user)->test('pages.fichas.ver', ['ficha' => $ficha])
             ->call('actualizar', 'estandar.bloques.0.texto', 'El koala vive en Australia y come eucalipto.')
@@ -288,7 +298,7 @@ class FichasTest extends TestCase
 
     public function test_el_titulo_editado_a_mano_se_corta_a_255_caracteres(): void
     {
-        $ficha = Ficha::factory()->create(['estado' => 'listo', 'contenido' => $this->respuestaIA()['niveles']]);
+        $ficha = Ficha::factory()->create(['estado' => 'listo', 'contenido' => $this->contenido()]);
 
         Volt::actingAs($ficha->user)->test('pages.fichas.ver', ['ficha' => $ficha])
             ->call('actualizar', 'titulo', str_repeat('a', 300));
@@ -298,7 +308,7 @@ class FichasTest extends TestCase
 
     public function test_mientras_se_regenera_no_se_guardan_ediciones_a_mano(): void
     {
-        $ficha = Ficha::factory()->create(['estado' => 'generando', 'contenido' => $this->respuestaIA()['niveles']]);
+        $ficha = Ficha::factory()->create(['estado' => 'generando', 'contenido' => $this->contenido()]);
 
         Volt::actingAs($ficha->user)->test('pages.fichas.ver', ['ficha' => $ficha])
             ->call('actualizar', 'titulo', 'Editado durante la generación');
@@ -337,7 +347,7 @@ class FichasTest extends TestCase
         Image::fake();
         Storage::disk('public')->put('imagenes/vieja.png', 'imagen');
         $ficha = Ficha::factory()->create([
-            'estado' => 'listo', 'contenido' => $this->respuestaIA()['niveles'],
+            'estado' => 'listo', 'contenido' => $this->contenido(),
             'con_imagen' => true, 'imagen_por' => 'openai', 'imagen' => 'imagenes/vieja.png',
         ]);
 
@@ -356,7 +366,7 @@ class FichasTest extends TestCase
         Image::fake(fn () => throw new RuntimeException('Sin saldo'));
         Storage::disk('public')->put('imagenes/vieja.png', 'imagen');
         $ficha = Ficha::factory()->create([
-            'estado' => 'listo', 'contenido' => $this->respuestaIA()['niveles'],
+            'estado' => 'listo', 'contenido' => $this->contenido(),
             'con_imagen' => true, 'imagen_por' => 'openai', 'imagen' => 'imagenes/vieja.png',
         ]);
 
@@ -373,7 +383,7 @@ class FichasTest extends TestCase
     {
         Storage::fake('public');
         Storage::disk('public')->put('imagenes/koala.png', 'imagen');
-        $ficha = Ficha::factory()->create(['estado' => 'listo', 'contenido' => $this->respuestaIA()['niveles'], 'imagen' => 'imagenes/koala.png']);
+        $ficha = Ficha::factory()->create(['estado' => 'listo', 'contenido' => $this->contenido(), 'imagen' => 'imagenes/koala.png']);
 
         Volt::actingAs($ficha->user)->test('pages.fichas.ver', ['ficha' => $ficha])->call('borrar');
 
