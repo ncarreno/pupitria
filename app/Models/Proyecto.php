@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\View\EstilosDocumento;
 use Database\Factories\ProyectoFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -58,6 +59,14 @@ class Proyecto extends Model
     public function estaGenerando(): bool
     {
         return $this->estado === 'generando';
+    }
+
+    /**
+     * El estilo con el que se ve e imprime: el suyo o, si no tiene, el del perfil de la docente.
+     */
+    public function estiloVisual(): string
+    {
+        return EstilosDocumento::resolver($this->estilo, $this->user);
     }
 
     /**

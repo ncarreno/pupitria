@@ -1,5 +1,6 @@
 @props(['ficha', 'nivel' => 'estandar', 'editable' => false])
 @php
+    $estilo = $ficha->estiloVisual();
     $n = $ficha->contenido[$nivel] ?? ['consigna' => '', 'bloques' => []];
     $puntos = ['refuerzo' => 1, 'estandar' => 2, 'ampliacion' => 3][$nivel] ?? 2;
     $e = $editable;
@@ -7,58 +8,10 @@
     $nombreArea = \App\Models\Area::where('codigo', $ficha->area)->value('nombre_corto') ?? $ficha->area;
 @endphp
 
-@once
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=kalam:400,700|atkinson-hyperlegible:400,400i,700" rel="stylesheet" />
-    <style>
-        .hoja-ficha{--azul:#2a6fdb;--rojo:#d62839;--tinta:#1f2a44;max-width:820px;margin:0 auto;background:#fff;color:var(--tinta);font-family:"Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif;font-size:15px;line-height:1.5;padding:28px 32px}
-        .hoja-ficha.refuerzo{font-size:17px}
-        .hoja-ficha [contenteditable]{border-radius:3px;outline:none}
-        .hoja-ficha [contenteditable]:hover{box-shadow:0 0 0 1px rgba(31,42,68,.25)}
-        .hoja-ficha [contenteditable]:focus{box-shadow:0 0 0 2px var(--azul)}
-        .hoja-ficha .cab{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;align-items:end;margin-bottom:12px}
-        .hoja-ficha h1{font-family:"Kalam",cursive;font-weight:700;font-size:36px;line-height:1.05;margin:0}
-        .hoja-ficha .sub{font-size:12px;opacity:.75;margin-top:4px}
-        .hoja-ficha .puntos{display:flex;gap:4px;color:var(--azul)}
-        .hoja-ficha .puntos i{width:10px;height:10px;border-radius:50%;border:1.5px solid currentColor;display:block}
-        .hoja-ficha .puntos i.on{background:currentColor}
-        .hoja-ficha .quien{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin:4px 0 14px;font-size:13px}
-        .hoja-ficha .quien div{border-bottom:1.5px solid currentColor;padding-bottom:2px}
-        .hoja-ficha .ilustracion{width:100%;max-height:260px;object-fit:contain;margin:0 0 14px}
-        .hoja-ficha .consigna{font-weight:700;margin:0 0 12px}
-        .hoja-ficha .b{border:1.5px solid var(--tinta);padding:12px 14px;margin:0 0 14px;break-inside:avoid}
-        .hoja-ficha .b h2{font-family:"Kalam",cursive;font-size:20px;font-weight:700;color:var(--rojo);margin:0 0 8px;line-height:1.1}
-        .hoja-ficha .b p{margin:0}
-        .hoja-ficha .b p.enunciado{font-weight:700;margin:0 0 8px}
-        .hoja-ficha .lineas{display:grid;gap:22px;margin-top:10px}
-        .hoja-ficha .lineas span{border-bottom:1.5px dotted currentColor;display:block;height:1px}
-        .hoja-ficha .opc{display:flex;flex-wrap:wrap;gap:6px 18px;margin:4px 0 10px}
-        .hoja-ficha .opc span{display:inline-flex;gap:6px;align-items:center}
-        .hoja-ficha .opc span::before{content:"";width:14px;height:14px;border:1.5px solid currentColor;border-radius:50%}
-        .hoja-ficha .banco{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-        .hoja-ficha .banco span{border:1.5px dashed currentColor;padding:2px 10px}
-        .hoja-ficha table{width:100%;border-collapse:collapse;margin-top:6px}
-        .hoja-ficha th,.hoja-ficha td{border:1.5px solid currentColor;padding:8px;text-align:left;vertical-align:top}
-        .hoja-ficha td.vacia{height:44px}
-        .hoja-ficha .vf{display:grid;grid-template-columns:minmax(0,1fr) 34px;gap:6px 10px;align-items:center}
-        .hoja-ficha .vf b{border:1.5px solid currentColor;height:26px;display:block}
-        .hoja-ficha .rel{display:grid;grid-template-columns:minmax(0,1fr) 60px minmax(0,1fr);gap:10px;align-items:center}
-        .hoja-ficha .rel .c{border:1.5px solid currentColor;padding:6px 8px}
-        .hoja-ficha .rel .p{display:flex;justify-content:space-between}
-        .hoja-ficha .rel .p i{width:9px;height:9px;border-radius:50%;background:currentColor;display:block}
-        .hoja-ficha .dibujo{height:190px;border:2px dashed currentColor;margin-top:8px}
-        .hoja-ficha .pie{font-size:11px;opacity:.7;margin-top:6px}
-        @media (max-width:640px){.hoja-ficha{padding:18px}.hoja-ficha h1{font-size:28px}}
-        @media print{
-            body *{visibility:hidden}
-            .hoja-ficha,.hoja-ficha *{visibility:visible}
-            .hoja-ficha{position:absolute;left:0;top:0;width:100%;max-width:none;padding:0}
-            .hoja-ficha [contenteditable]:hover,.hoja-ficha [contenteditable]:focus{box-shadow:none}
-        }
-    </style>
-@endonce
+<link rel="preconnect" href="https://fonts.bunny.net">
+<link href="{{ \App\View\EstilosDocumento::urlFuentes($estilo) }}" rel="stylesheet" />
 
-<article {{ $attributes->merge(['class' => 'hoja-ficha '.$nivel]) }}>
+<article {{ $attributes->merge(['class' => "hoja-ficha {$nivel} t-{$estilo}"]) }}>
     <div class="cab">
         <div>
             <x-proyecto.campo :editable="$e" ruta="titulo" tag="h1" :valor="$ficha->titulo" />
@@ -78,7 +31,7 @@
 
     @foreach ($n['bloques'] as $i => $b)
         @php $p = "{$base}.{$i}"; @endphp
-        <section class="b">
+        <section class="b b-{{ $b['tipo'] }}">
             @if ($b['titulo'] !== '')
                 <x-proyecto.campo :editable="$e" :ruta="$p.'.titulo'" tag="h2" :valor="$b['titulo']" />
             @endif
@@ -92,7 +45,7 @@
                     @break
                 @case('preguntas')
                     @foreach ($b['preguntas'] as $j => $q)
-                        <div style="margin-bottom:10px">{{ $j + 1 }}. <x-proyecto.campo :editable="$e" :ruta="$p.'.preguntas.'.$j" :valor="$q" />
+                        <div class="pregunta">{{ $j + 1 }}. <x-proyecto.campo :editable="$e" :ruta="$p.'.preguntas.'.$j" :valor="$q" />
                             <div class="lineas">@for ($l = 0; $l < $b['lineas']; $l++)<span></span>@endfor</div>
                         </div>
                     @endforeach

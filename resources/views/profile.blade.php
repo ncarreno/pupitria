@@ -11,6 +11,10 @@
         </div>
 
         <div class="tarjeta p-6 sm:p-8">
+            <livewire:profile.update-estilo-form />
+        </div>
+
+        <div class="tarjeta p-6 sm:p-8">
             <livewire:profile.update-password-form />
         </div>
 

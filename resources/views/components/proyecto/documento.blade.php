@@ -5,6 +5,7 @@
     use App\Models\Saber;
     use App\Services\Curriculo\CatalogoCurriculo;
 
+    $estilo = $proyecto->estiloVisual();
     $c = $proyecto->contenido ?? [];
     $idsCriterio = data_get($c, 'curriculo.criterios', []);
     $derivados = app(CatalogoCurriculo::class)->derivados($idsCriterio);
@@ -16,45 +17,10 @@
     $e = $editable;
 @endphp
 
-@once
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=kalam:400,700|atkinson-hyperlegible:400,400i,700" rel="stylesheet" />
-    <style>
-        .doc-proyecto{--azul:#2a6fdb;--rojo:#d62839;--tinta:#1f2a44;position:relative;background-color:#fdfefe;background-image:linear-gradient(#dbe6f5 1px,transparent 1px),linear-gradient(90deg,#dbe6f5 1px,transparent 1px);background-size:18px 18px;color:var(--tinta);font-family:"Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif;font-size:13.5px;line-height:1.4;padding:26px 28px 30px 74px}
-        .doc-proyecto::before{content:"";position:absolute;top:0;bottom:0;left:44px;width:2px;background:#e8a3aa}
-        .doc-proyecto [contenteditable]{border-radius:3px;outline:none}
-        .doc-proyecto [contenteditable]:hover{box-shadow:0 0 0 1px rgba(31,42,68,.25)}
-        .doc-proyecto [contenteditable]:focus{box-shadow:0 0 0 2px var(--azul);background:#fff}
-        .doc-proyecto .titulo{font-family:"Kalam",cursive;font-weight:700;font-size:44px;line-height:1.05;margin:0}
-        .doc-proyecto .titulo span{background:linear-gradient(transparent 58%,#ffe066 58%)}
-        .doc-proyecto .lema{font-family:"Kalam",cursive;font-size:18px;color:var(--azul);margin:6px 0 10px}
-        .doc-proyecto .meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
-        .doc-proyecto .meta div{border:1.5px solid var(--tinta);background:#fff;padding:5px 10px;display:flex;gap:8px;align-items:baseline}
-        .doc-proyecto .k{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--rojo)}
-        .doc-proyecto .rejilla{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px}
-        .doc-proyecto .s{background:rgba(255,255,255,.9);border:1.5px solid var(--tinta);box-shadow:3px 3px 0 var(--tinta);padding:12px 14px;min-width:0}
-        .doc-proyecto .s h3{font-family:"Kalam",cursive;font-size:20px;font-weight:700;color:var(--rojo);margin:0 0 8px;line-height:1}
-        .doc-proyecto .s:nth-child(3n+2) h3{color:var(--azul)}
-        .doc-proyecto .s p{margin:0 0 6px}
-        .doc-proyecto .s ul{margin:0;padding-left:18px;list-style:disc;display:grid;gap:3px}
-        .doc-proyecto .b{font-weight:700}
-        .doc-proyecto .cod{font-weight:700;font-size:10.5px;white-space:nowrap;color:var(--rojo)}
-        .doc-proyecto .crit{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 8px;font-size:11.5px;margin:4px 0 8px}
-        .doc-proyecto .tareas{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-        .doc-proyecto .tarea{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px}
-        .doc-proyecto .tarea .n{background:var(--azul);color:#fff;border-radius:50%;width:22px;height:22px;line-height:22px;text-align:center;font-weight:700;font-size:12px}
-        .doc-proyecto .tarea .det{font-size:10.5px;opacity:.8}
-        .doc-proyecto .ods div{display:flex;gap:8px;align-items:center;margin-bottom:4px}
-        .doc-proyecto .ods span.num{background:var(--azul);color:#fff;font-weight:700;min-width:30px;text-align:center}
-        .doc-proyecto table{width:100%;border-collapse:collapse;font-size:11.5px}
-        .doc-proyecto th,.doc-proyecto td{border:1px solid #9fb6d9;padding:5px 6px;text-align:left;vertical-align:top}
-        .doc-proyecto .verif{font-size:10.5px;margin-top:6px;color:#1d6b35}
-        .doc-proyecto .c3{grid-column:span 3}.doc-proyecto .c4{grid-column:span 4}.doc-proyecto .c5{grid-column:span 5}.doc-proyecto .c8{grid-column:span 8}.doc-proyecto .c12{grid-column:span 12}
-        @media (max-width:860px){.doc-proyecto{padding:18px 16px 22px 54px}.doc-proyecto::before{left:30px}.doc-proyecto .rejilla{grid-template-columns:minmax(0,1fr)}.doc-proyecto .rejilla>*{grid-column:1/-1}.doc-proyecto .tareas{grid-template-columns:1fr}.doc-proyecto .titulo{font-size:34px}}
-    </style>
-@endonce
+<link rel="preconnect" href="https://fonts.bunny.net">
+<link href="{{ \App\View\EstilosDocumento::urlFuentes($estilo) }}" rel="stylesheet" />
 
-<article {{ $attributes->merge(['class' => 'doc-proyecto']) }}>
+<article {{ $attributes->merge(['class' => "doc-proyecto t-{$estilo}"]) }}>
     <h1 class="titulo"><x-proyecto.campo :editable="$e" ruta="titulo" :valor="$c['titulo'] ?? ''" /></h1>
     <x-proyecto.campo :editable="$e" ruta="lema" tag="p" class="lema" :valor="$c['lema'] ?? ''" />
     <div class="meta">

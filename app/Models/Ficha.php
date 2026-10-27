@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\View\EstilosDocumento;
 use Database\Factories\FichaFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -84,5 +85,13 @@ class Ficha extends Model
     public function urlImagen(): ?string
     {
         return $this->imagen ? Storage::disk('public')->url($this->imagen) : null;
+    }
+
+    /**
+     * El estilo con el que se ve e imprime: el suyo o, si no tiene, el del perfil de la docente.
+     */
+    public function estiloVisual(): string
+    {
+        return EstilosDocumento::resolver($this->estilo, $this->user);
     }
 }

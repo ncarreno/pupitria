@@ -171,6 +171,7 @@ return [
         'current_password' => 'contraseña actual',
         'password_confirmation' => 'confirmación de la contraseña',
         'nombre' => 'nombre',
+        'estilo' => 'estilo',
         'curso' => 'curso',
         'alumnos' => 'alumnos',
         'alumnos_refuerzo' => 'alumnos con refuerzo',

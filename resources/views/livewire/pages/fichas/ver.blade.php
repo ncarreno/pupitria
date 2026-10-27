@@ -2,6 +2,7 @@
 
 use App\Jobs\GenerarFicha;
 use App\Models\Ficha;
+use App\View\EstilosDocumento;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
@@ -40,6 +41,18 @@ new #[Layout('layouts.app')] class extends Component
     {
         if (array_key_exists($nivel, Ficha::NIVELES)) {
             $this->nivel = $nivel;
+        }
+    }
+
+    /**
+     * '' vuelve al estilo del perfil de la docente.
+     */
+    public function cambiarEstilo(string $estilo): void
+    {
+        $this->authorize('update', $this->ficha);
+
+        if ($estilo === '' || EstilosDocumento::existe($estilo)) {
+            $this->ficha->forceFill(['estilo' => $estilo ?: null])->save();
         }
     }
 
@@ -173,7 +186,10 @@ new #[Layout('layouts.app')] class extends Component
                                 </button>
                             @endforeach
                         </div>
-                        <x-secondary-button type="button" onclick="window.print()"><x-icono nombre="imprimir" class="size-4" />Imprimir</x-secondary-button>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <x-selector-estilo :actual="$ficha->estilo" />
+                            <x-secondary-button type="button" onclick="window.print()"><x-icono nombre="imprimir" class="size-4" />Imprimir</x-secondary-button>
+                        </div>
                     </div>
 
                     <div class="rounded-[1.75rem] bg-stone-200/50 p-3 ring-1 ring-inset ring-stone-200 sm:p-8">

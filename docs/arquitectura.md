@@ -92,7 +92,8 @@ La **validación curricular es independiente de la IA**: criterios y saberes se 
 ## Exportación (sprint 5)
 - **Word (.docx):** PhpWord con plantillas por tipo de documento.
 - **PDF:** `spatie/laravel-pdf` (o Browsershot) con las mismas vistas Blade que la pantalla. Requiere Chromium en el servidor.
-- Los 4 estilos visuales del prototipo pasan a ser **temas CSS** compartidos entre pantalla y PDF.
+- **4 estilos visuales** (Cuaderno, Caligrafía, Cartulina y Esencial) como clases `t-{estilo}` en `resources/css/documentos.css`, compartidos entre pantalla y PDF. Catálogo en `App\View\EstilosDocumento`; cada proyecto y ficha puede tener el suyo, y si no, usa el del perfil de la docente.
+- Plan detallado en [sprints/sprint-5.md](sprints/sprint-5.md).
 
 ## Despliegue en Plesk
 - PHP 8.4+ con FPM, MySQL/MariaDB y HTTPS.
@@ -115,8 +116,8 @@ La **validación curricular es independiente de la IA**: criterios y saberes se 
 | 2 | Generador de proyectos, edición en línea, versiones | Hecho (en prueba con la beta tester) |
 | — | Imágenes con OpenAI (`ClienteIA::generarImagen`) | Hecho |
 | 3 | Fichas en 3 niveles, ilustración con OpenAI o prompt externo | Hecho (en prueba con la beta tester) |
-| 4 | Panel de administración de IA, respaldo, batería de pruebas comparativa | **Siguiente** |
-| 5 | Exportación Word y PDF, estilos visuales | |
+| 4 | Panel de administración de IA, respaldo, batería de pruebas comparativa, cuentas y administración aparte | Hecho (coste en euros pospuesto) |
+| 5 | Exportación Word y PDF, estilos visuales | **Siguiente** |
 | 6 | Biblioteca, búsqueda, duplicar, control de uso | |
 
 **Después de la v1:** currículo de Infantil, estilo propio aprendido de sus ejemplos, preparación de reuniones con familias, programación de aula y planes de pago.

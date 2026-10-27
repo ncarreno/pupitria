@@ -2,6 +2,7 @@
 
 use App\Jobs\GenerarProyecto;
 use App\Models\Proyecto;
+use App\View\EstilosDocumento;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
@@ -39,6 +40,18 @@ new #[Layout('layouts.app')] class extends Component
     public function refrescar(): void
     {
         $this->proyecto->refresh();
+    }
+
+    /**
+     * '' vuelve al estilo del perfil de la docente.
+     */
+    public function cambiarEstilo(string $estilo): void
+    {
+        $this->authorize('update', $this->proyecto);
+
+        if ($estilo === '' || EstilosDocumento::existe($estilo)) {
+            $this->proyecto->forceFill(['estilo' => $estilo ?: null])->save();
+        }
     }
 
     public function actualizar(string $ruta, string $valor): void
@@ -160,6 +173,9 @@ new #[Layout('layouts.app')] class extends Component
             </section>
 
             <div>
+                <div class="mb-3 flex justify-end">
+                    <x-selector-estilo :actual="$proyecto->estilo" />
+                </div>
                 <div class="overflow-x-auto rounded-2xl shadow-papel ring-1 ring-stone-200">
                     <x-proyecto.documento :proyecto="$proyecto" :editable="! $proyecto->estaGenerando()" wire:key="doc-{{ $proyecto->updated_at?->timestamp }}" />
                 </div>
