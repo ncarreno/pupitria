@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 App Laravel para que docentes de Primaria (piloto en Asturias) generen proyectos y fichas en 3 niveles ajustados a su clase y al currículo, con IA configurable.
 
-**Antes de trabajar, lee `docs/README.md`**: estado actual, reglas del proyecto (español en dominio e interfaz, sin datos de alumnos, toda llamada a la IA por `ClienteIA`, aislamiento entre docentes) y enlaces a producto, arquitectura y sprints. El próximo trabajo está en `docs/sprints/sprint-4.md`. Al cerrar un sprint, actualiza su archivo en `docs/sprints/` y la hoja de ruta de `docs/arquitectura.md`.
+**Antes de trabajar, lee `docs/README.md`**: estado actual, reglas del proyecto (español en dominio e interfaz, sin datos de alumnos, toda llamada a la IA por `ClienteIA`, aislamiento entre docentes) y enlaces a producto, arquitectura y sprints. El próximo trabajo está en `docs/sprints/sprint-5.md`. Al cerrar un sprint, actualiza su archivo en `docs/sprints/` y la hoja de ruta de `docs/arquitectura.md`.
 
 ## Comandos
 - `composer run dev`: `artisan serve`, Vite, worker de la cola y logs (`pail`). Sin la cola no se genera nada. La web la sirve Herd; `serve` sobra pero no molesta.

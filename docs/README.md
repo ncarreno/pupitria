@@ -8,12 +8,12 @@ App para que docentes de Primaria (piloto en Asturias) generen proyectos y ficha
 | [producto.md](producto.md) | Qué es la v1, para quién, qué entra y qué no, reglas de producto |
 | [arquitectura.md](arquitectura.md) | Decisiones técnicas, módulos, IA, datos, despliegue y hoja de ruta |
 | [sprints/](sprints/) | Qué se hizo en cada sprint y qué quedó pendiente |
-| [sprints/sprint-4.md](sprints/sprint-4.md) | **Próximo sprint** (plan, sin empezar) |
+| [sprints/sprint-5.md](sprints/sprint-5.md) | **Próximo sprint** (plan, sin empezar) |
 
-## Estado (26 oct 2026)
-- **Sprints 0–3 hechos.** Cuentas y roles, currículo importado, Mis clases, generador de proyectos con versiones y fichas en 3 niveles con ilustración (OpenAI o prompt para ChatGPT/Gemini). Tests en verde en el Mac de Nacho.
-- **En prueba con la beta tester:** proyectos ("Exploradores del planeta", artes escénicas) y fichas. Sus comentarios deciden los ajustes de prompts y los casos de la batería del sprint 4.
-- **Siguiente:** sprint 4, panel de administración de IA y batería de pruebas comparativa.
+## Estado (27 oct 2026)
+- **Sprints 0–4 hechos.** Cuentas y roles, currículo importado, Mis clases, generador de proyectos con versiones, fichas en 3 niveles con ilustración (OpenAI o prompt para ChatGPT/Gemini) y administración aparte en `/admin` (configuración de la IA, uso, batería de pruebas comparativa y cuentas). Tests en verde en el Mac de Nacho.
+- **En prueba con la beta tester:** proyectos ("Exploradores del planeta", artes escénicas), fichas y la valoración de la batería. Sus comentarios deciden los ajustes de prompts.
+- **Siguiente:** sprint 5, exportación Word y PDF y estilos visuales.
 
 ## Entorno local
 - Laravel 13, Livewire 3 + Volt, Alpine, Tailwind, `laravel/ai`. PHP 8.4 con Laravel Herd, MySQL. URL `http://app-colegios.test`.
