@@ -29,5 +29,5 @@ App para que docentes de Primaria (piloto en Asturias) generen proyectos y ficha
 - **Validación curricular independiente de la IA:** los ids de criterios y saberes se comprueban contra la base de datos y se descartan los inventados.
 - **Nunca texto dentro de las imágenes.** Los textos van en HTML editable.
 - **Cada docente solo ve lo suyo** (policies en clases, proyectos y fichas). Cada pantalla nueva necesita su test de aislamiento.
-- Prompts en vistas Blade en `resources/views/prompts/`, con el currículo al principio (caché).
+- Prompts en vistas Blade en `resources/views/prompts/`. Lo que se repite (reglas y currículo) va en las vistas `*-instrucciones`, que Anthropic cachea (`AgenteEstructurado`); lo que cambia (idea, tema, ajuste) va en la petición. No metas en las instrucciones nada que cambie en cada llamada (fechas, la idea…): rompería la caché.
 - Al cerrar un sprint: actualizar su archivo en `docs/sprints/` (Hecho / Pendiente de Nacho / Siguiente) y la tabla de la hoja de ruta en `arquitectura.md`.

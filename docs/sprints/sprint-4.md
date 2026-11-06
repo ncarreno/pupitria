@@ -37,7 +37,7 @@ Que Nacho pueda **cambiar proveedor y modelo por tarea sin tocar la base de dato
 ## Pendiente
 - **Coste estimado en `/admin/ia/uso`** (pospuesto). Cada generación ya guarda proveedor, modelo y tokens, así que el coste se podrá calcular también para el historial. Al hacerlo:
   - Tabla de precios por modelo con la **fecha desde la que vale** cada precio, para que el historial use el precio de su momento.
-  - Hoy solo se guardan los tokens **leídos** de caché, no los **escritos** (Anthropic los cobra más caros). Sin ese dato el coste sale algo por debajo del real; guardarlo pronto da más historial exacto aunque el coste espere.
+  - Los tokens **escritos** en caché (Anthropic los cobra más caros) se guardan desde el 5 nov en `generaciones.tokens_cache_escritos`; antes solo se guardaban los leídos, así que el coste del historial anterior saldrá algo por debajo del real.
 
 ## Pendiente de Nacho
 - `GEMINI_API_KEY` en `.env` (local y servidor); sin ella, las ejecuciones con Gemini salen como fallidas.

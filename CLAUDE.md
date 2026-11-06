@@ -24,7 +24,7 @@ Página Volt (`resources/views/livewire/pages/{proyectos,fichas}/`) crea el regi
 ## Tests
 - PHPUnit, SQLite en memoria y cola `sync` (`phpunit.xml`), así que los jobs se ejecutan dentro del test.
 - Los tests que generan llaman en `setUp()` a `curriculo:importar` y a `IaConfiguracionSeeder`.
-- La IA se simula con `StructuredAnonymousAgent::fake([...])` e `Image::fake()` (`Laravel\Ai`); ver `tests/Feature/FichasTest.php` como modelo. Ningún test debe llamar a un proveedor real.
+- La IA se simula con `AgenteEstructurado::fake([...])` (`App\Services\IA`, el agente que usa `ClienteIA`) e `Image::fake()` (`Laravel\Ai`); ver `tests/Feature/FichasTest.php` como modelo. Ningún test debe llamar a un proveedor real.
 - Las páginas se prueban con `Volt::actingAs($usuario)->test('pages.fichas.nueva')`.
 
 <laravel-boost-guidelines>

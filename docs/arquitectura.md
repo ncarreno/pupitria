@@ -41,7 +41,7 @@
 - **Configuración por tarea** (`proyecto`, `ajuste`, `ficha`, `prueba`, `imagen`): proveedor, modelo y lista de respaldo.
 - **Tabla `ia_configuraciones`**: tarea, proveedor, modelo (null = por defecto), orden (1 = principal, 2+ = respaldo), timeout y activo. Única por (tarea, proveedor). Se editará desde el panel de administración (sprint 4).
 - **Claves de API en `.env`**, una por proveedor. Los docentes nunca las ven.
-- **Registro en `generaciones`**: usuario, tarea, estado, proveedor, modelo, si respondió el respaldo, tokens (entrada, salida, caché), duración, ids descartados y error. **Nunca el texto de la petición.**
+- **Registro en `generaciones`**: usuario, tarea, estado, proveedor, modelo, si respondió el respaldo, tokens (entrada, salida, leídos de caché y escritos en caché), duración, ids descartados y error. **Nunca el texto de la petición.**
 - **Preparado para más adelante:** una preferencia por usuario que sustituya la configuración global. No se construye ahora.
 
 ### Configuración inicial (seeder `IaConfiguracionSeeder`)
@@ -58,7 +58,7 @@ La **validación curricular es independiente de la IA**: criterios y saberes se 
 ### Riesgos
 - **Calidad y tono cambian entre modelos.** El "suena menos a IA" se validó con Claude. Cada proveedor nuevo debe pasar la **batería de pruebas** (sprint 4): los mismos 5–6 casos reales comparados lado a lado, idealmente valorados por la beta tester.
 - **La salida estructurada no es idéntica en todos los proveedores.** Se mantiene el esquema simple (por eso las fichas usan un único esquema de bloque para los 8 tipos).
-- **La caché de prompts funciona distinto en cada proveedor.** El currículo siempre va al principio del prompt.
+- **La caché de prompts funciona distinto en cada proveedor.** OpenAI y Gemini cachean solos el principio repetido del prompt; Anthropic solo si se le marca. `ClienteIA` usa `App\Services\IA\AgenteEstructurado` (el agente anónimo del SDK con `#[CacheInstructions]`), que pone el punto de corte al final de las instrucciones. Por eso las reglas y el currículo van en las instrucciones (`prompts/*-instrucciones`) y lo que cambia en la petición: un ajuste, un reintento o un documento con las mismas áreas y ciclo en los 5 minutos siguientes leen el currículo de la caché (un 10 % del precio; escribirlo cuesta un 25 % más). Se mide en `/admin/ia/uso` (leídos y escritos en caché).
 - **Privacidad:** revisar las condiciones de cada proveedor antes de activarlo para otros docentes.
 
 ## Imágenes
@@ -97,7 +97,8 @@ La **validación curricular es independiente de la IA**: criterios y saberes se 
 
 ## Despliegue en Plesk
 - PHP 8.4+ con FPM, MySQL/MariaDB y HTTPS.
-- **Cola:** worker con Supervisor si hay root; si no, tarea programada de Plesk cada minuto con `queue:work --stop-when-empty`. Como puede haber varios workers a la vez, `retry_after` de la cola `database` (460 s, `DB_QUEUE_RETRY_AFTER`) debe ser mayor que el timeout más largo de los jobs; si no, otro worker coge un job que sigue en marcha y lo da por fallido.
+- **Tareas programadas:** una sola tarea de Plesk cada minuto: `cd /var/www/vhosts/DOMINIO/httpdocs && /opt/plesk/php/8.4/bin/php artisan schedule:run >> /dev/null 2>&1` (ruta completa de PHP: el `php` del sistema suele ser más antiguo). Lo que se ejecuta está en `routes/console.php`; `php artisan schedule:list` lo muestra.
+- **Cola:** el scheduler lanza cada minuto `queue:work --stop-when-empty` en segundo plano y sin `withoutOverlapping` (varias generaciones en paralelo y sin bloqueos que se queden colgados si un worker muere). Como puede haber varios workers a la vez, `retry_after` de la cola `database` (460 s, `DB_QUEUE_RETRY_AFTER`) debe ser mayor que el timeout más largo de los jobs; si no, otro worker coge un job que sigue en marcha y lo da por fallido. Los jobs fallidos de más de 30 días se borran a diario (`queue:prune-failed`). Con Supervisor (si hay root) se quitaría el worker del scheduler.
 - `php artisan storage:link`.
 - Claves de los proveedores activos (Anthropic y OpenAI como mínimo).
 - Copias diarias de la base de datos y de `storage/app/public`.
