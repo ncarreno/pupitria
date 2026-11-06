@@ -13,8 +13,6 @@ use Laravel\Ai\Responses\StructuredAgentResponse;
 use RuntimeException;
 use Throwable;
 
-use function Laravel\Ai\agent;
-
 /**
  * Punto único de llamada a la IA. No sabe qué proveedor hay debajo: lo lee de
  * `ia_configuraciones` (lo elige solo el administrador) y usa el respaldo del
@@ -28,6 +26,9 @@ class ClienteIA
 {
     /**
      * Pide a la IA una respuesta estructurada (JSON con esquema).
+     *
+     * Lo que se repite entre llamadas (reglas y currículo) va en `$instrucciones`, que Anthropic
+     * cachea (ver AgenteEstructurado); lo que cambia cada vez (idea, tema, proyecto actual) va en `$peticion`.
      *
      * @param  string  $tarea  proyecto, ajuste, ficha…
      * @param  Closure  $esquema  fn (JsonSchema $schema): array — esquema del Laravel AI SDK
@@ -62,7 +63,7 @@ class ClienteIA
 
         try {
             /** @var StructuredAgentResponse $respuesta */
-            $respuesta = agent(instructions: $instrucciones, schema: $esquema)
+            $respuesta = (new AgenteEstructurado($instrucciones, [], [], $esquema))
                 ->prompt($peticion, provider: $proveedores, timeout: $configuracion->max('timeout'));
         } catch (Throwable $e) {
             $generacion->update([
@@ -82,6 +83,7 @@ class ClienteIA
             'tokens_entrada' => $respuesta->usage->inputTokens,
             'tokens_salida' => $respuesta->usage->outputTokens,
             'tokens_cache' => $respuesta->usage->cacheReadInputTokens,
+            'tokens_cache_escritos' => $respuesta->usage->cacheWriteInputTokens,
             'duracion_ms' => $this->ms($inicio),
         ]);
 

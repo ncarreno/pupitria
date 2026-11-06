@@ -8,9 +8,9 @@ use App\Models\IaCaso;
 use App\Models\IaEjecucion;
 use App\Models\Proyecto;
 use App\Models\User;
+use App\Services\IA\AgenteEstructurado;
 use Database\Seeders\IaConfiguracionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Ai\StructuredAnonymousAgent;
 use Livewire\Volt\Volt;
 use RuntimeException;
 use Tests\TestCase;
@@ -61,7 +61,7 @@ class BateriaPruebasTest extends TestCase
 
     public function test_cada_proveedor_genera_su_resultado_limpio_sin_crear_proyectos_ni_fichas(): void
     {
-        StructuredAnonymousAgent::fake(fn ($prompt, $adjuntos, $proveedor) => $this->respuestaProyecto('Responde '.$proveedor->name()));
+        AgenteEstructurado::fake(fn ($prompt, $adjuntos, $proveedor) => $this->respuestaProyecto('Responde '.$proveedor->name()));
         $caso = IaCaso::factory()->create();
 
         $this->artisan('ia:bateria', ['--caso' => $caso->id])->assertSuccessful();
@@ -82,7 +82,7 @@ class BateriaPruebasTest extends TestCase
 
     public function test_el_administrador_lanza_un_caso_de_ficha_desde_la_pagina(): void
     {
-        StructuredAnonymousAgent::fake([$this->respuestaFicha()]);
+        AgenteEstructurado::fake([$this->respuestaFicha()]);
         $caso = IaCaso::factory()->ficha()->create();
 
         Volt::actingAs(User::factory()->admin()->create())->test('pages.admin.pruebas.index')
@@ -100,7 +100,7 @@ class BateriaPruebasTest extends TestCase
 
     public function test_si_un_proveedor_falla_su_ejecucion_queda_fallida_y_las_demas_siguen(): void
     {
-        StructuredAnonymousAgent::fake(fn ($prompt, $adjuntos, $proveedor) => $proveedor->name() === 'gemini'
+        AgenteEstructurado::fake(fn ($prompt, $adjuntos, $proveedor) => $proveedor->name() === 'gemini'
             ? throw new RuntimeException('Sin clave de Gemini')
             : $this->respuestaProyecto());
         $caso = IaCaso::factory()->create();
@@ -115,7 +115,7 @@ class BateriaPruebasTest extends TestCase
 
     public function test_un_proveedor_desconocido_no_lanza_nada(): void
     {
-        StructuredAnonymousAgent::fake()->preventStrayPrompts();
+        AgenteEstructurado::fake()->preventStrayPrompts();
         IaCaso::factory()->create();
 
         $this->artisan('ia:bateria', ['--proveedores' => 'anthropic,inventado'])->assertFailed();
@@ -154,7 +154,7 @@ class BateriaPruebasTest extends TestCase
 
     public function test_cada_persona_guarda_su_valoracion_de_1_a_5(): void
     {
-        StructuredAnonymousAgent::fake([$this->respuestaProyecto()]);
+        AgenteEstructurado::fake([$this->respuestaProyecto()]);
         $caso = IaCaso::factory()->create();
         $this->artisan('ia:bateria', ['--caso' => $caso->id, '--proveedores' => 'anthropic'])->assertSuccessful();
         $ejecucion = IaEjecucion::sole();
@@ -180,7 +180,7 @@ class BateriaPruebasTest extends TestCase
 
     public function test_a_ciegas_no_se_ve_el_proveedor_hasta_valorar_todas_las_opciones(): void
     {
-        StructuredAnonymousAgent::fake(fn () => $this->respuestaProyecto());
+        AgenteEstructurado::fake(fn () => $this->respuestaProyecto());
         $caso = IaCaso::factory()->create();
         $this->artisan('ia:bateria', ['--caso' => $caso->id, '--proveedores' => 'anthropic,openai'])->assertSuccessful();
         [$primera, $segunda] = IaEjecucion::orderBy('id')->get()->all();
@@ -212,7 +212,7 @@ class BateriaPruebasTest extends TestCase
 
     public function test_las_pruebas_salen_aparte_en_el_uso_de_la_ia(): void
     {
-        StructuredAnonymousAgent::fake([$this->respuestaProyecto()]);
+        AgenteEstructurado::fake([$this->respuestaProyecto()]);
         $this->artisan('ia:bateria', ['--caso' => IaCaso::factory()->create()->id, '--proveedores' => 'anthropic'])->assertSuccessful();
 
         $this->assertSame(['bateria'], Generacion::pluck('tarea')->all());

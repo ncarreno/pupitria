@@ -7,9 +7,10 @@ use App\Models\Clase;
 use App\Models\Generacion;
 use App\Models\Proyecto;
 use App\Models\User;
+use App\Services\IA\AgenteEstructurado;
 use Database\Seeders\IaConfiguracionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Ai\StructuredAnonymousAgent;
+use Laravel\Ai\Prompts\AgentPrompt;
 use Livewire\Volt\Volt;
 use RuntimeException;
 use Tests\TestCase;
@@ -80,7 +81,7 @@ class ProyectosTest extends TestCase
 
     public function test_crear_un_proyecto_genera_el_documento_y_descarta_lo_inventado(): void
     {
-        StructuredAnonymousAgent::fake([$this->respuestaIA()]);
+        AgenteEstructurado::fake([$this->respuestaIA()]);
         $clase = $this->claseDe3();
 
         Volt::actingAs($clase->user)->test('pages.proyectos.nuevo')
@@ -128,7 +129,7 @@ class ProyectosTest extends TestCase
 
     public function test_ajustar_crea_una_version_nueva_con_la_instruccion(): void
     {
-        StructuredAnonymousAgent::fake([$this->respuestaIA(), $this->respuestaIA('Exploradores de Asturias')]);
+        AgenteEstructurado::fake([$this->respuestaIA(), $this->respuestaIA('Exploradores de Asturias')]);
         $clase = $this->claseDe3();
 
         Volt::actingAs($clase->user)->test('pages.proyectos.nuevo')
@@ -144,9 +145,37 @@ class ProyectosTest extends TestCase
         $this->assertSame(['Conéctalo más con Asturias', null], $proyecto->versiones->pluck('instruccion')->all());
     }
 
+    /**
+     * Anthropic solo reutiliza la caché si el principio del prompt es idéntico: el currículo va en las
+     * instrucciones y lo que cambia (idea, proyecto actual, ajuste) en la petición.
+     */
+    public function test_crear_y_ajustar_comparten_las_instrucciones_con_el_curriculo(): void
+    {
+        AgenteEstructurado::fake([$this->respuestaIA(), $this->respuestaIA('Exploradores de Asturias')]);
+        $clase = $this->claseDe3();
+
+        Volt::actingAs($clase->user)->test('pages.proyectos.nuevo')
+            ->set('claseId', $clase->id)->set('idea', 'Un viaje por los continentes')->set('areas', ['LCL', 'CN'])
+            ->call('crear');
+        Volt::actingAs($clase->user)->test('pages.proyectos.ver', ['proyecto' => Proyecto::sole()])
+            ->call('ajustar', 'Conéctalo más con Asturias');
+
+        $alCrear = null;
+        AgenteEstructurado::assertPrompted(function (AgentPrompt $p) use (&$alCrear) {
+            $alCrear = $p->agent->instructions();
+
+            return str_contains($p->prompt, 'Un viaje por los continentes') && ! str_contains($p->prompt, 'LCL.C2.4.1');
+        });
+        AgenteEstructurado::assertPrompted(fn (AgentPrompt $p) => str_contains($p->prompt, 'Conéctalo más con Asturias')
+            && $p->agent->instructions() === $alCrear);
+
+        $this->assertStringContainsString('CURRÍCULO DISPONIBLE', $alCrear);
+        $this->assertStringContainsString('LCL.C2.4.1', $alCrear);
+    }
+
     public function test_si_falla_la_primera_generacion_queda_en_error(): void
     {
-        StructuredAnonymousAgent::fake(fn () => throw new RuntimeException('Proveedor caído'));
+        AgenteEstructurado::fake(fn () => throw new RuntimeException('Proveedor caído'));
         $clase = $this->claseDe3();
 
         Volt::actingAs($clase->user)->test('pages.proyectos.nuevo')

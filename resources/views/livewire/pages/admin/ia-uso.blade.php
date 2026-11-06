@@ -41,7 +41,7 @@ new #[Layout('layouts.admin')] class extends Component
         $grupos = Generacion::query()
             ->where('created_at', '>=', now()->subDays($dias))
             ->selectRaw('tarea, proveedor, modelo, estado, respaldo, count(*) as total, sum(duracion_ms) as duracion,
-                sum(tokens_entrada) as entrada, sum(tokens_salida) as salida, sum(tokens_cache) as cache, sum(ids_descartados) as descartados')
+                sum(tokens_entrada) as entrada, sum(tokens_salida) as salida, sum(tokens_cache) as cache, sum(tokens_cache_escritos) as cache_escritos, sum(ids_descartados) as descartados')
             ->groupBy('tarea', 'proveedor', 'modelo', 'estado', 'respaldo')
             ->get();
 
@@ -56,6 +56,7 @@ new #[Layout('layouts.admin')] class extends Component
                 'entrada' => (int) $g->sum('entrada'),
                 'salida' => (int) $g->sum('salida'),
                 'cache' => (int) $g->sum('cache'),
+                'cache_escritos' => (int) $g->sum('cache_escritos'),
                 'descartados' => (int) $g->sum('descartados'),
             ];
         };
@@ -162,7 +163,8 @@ new #[Layout('layouts.admin')] class extends Component
                                             <th class="!text-right">Duración media</th>
                                             <th class="!text-right">Tokens entrada</th>
                                             <th class="!text-right">Salida</th>
-                                            <th class="!text-right">De caché</th>
+                                            <th class="!text-right">Leídos de caché</th>
+                                            <th class="!text-right">Escritos en caché</th>
                                             <th class="!text-right">Ids descartados</th>
                                         </tr>
                                     </thead>
@@ -175,6 +177,7 @@ new #[Layout('layouts.admin')] class extends Component
                                                 <td class="cifra text-right">{{ $this->numero($p['entrada']) }}</td>
                                                 <td class="cifra text-right">{{ $this->numero($p['salida']) }}</td>
                                                 <td class="cifra text-right">{{ $this->numero($p['cache']) }}</td>
+                                                <td class="cifra text-right">{{ $this->numero($p['cache_escritos']) }}</td>
                                                 <td class="cifra text-right">{{ $this->numero($p['descartados']) }}</td>
                                             </tr>
                                         @endforeach

@@ -9,12 +9,12 @@ use App\Models\Ficha;
 use App\Models\Generacion;
 use App\Models\Proyecto;
 use App\Models\User;
+use App\Services\IA\AgenteEstructurado;
 use Database\Seeders\IaConfiguracionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Ai\Image;
-use Laravel\Ai\StructuredAnonymousAgent;
 use Livewire\Volt\Volt;
 use RuntimeException;
 use Tests\TestCase;
@@ -87,7 +87,7 @@ class FichasTest extends TestCase
 
     public function test_crear_una_ficha_genera_los_tres_niveles_y_limpia_lo_inventado(): void
     {
-        StructuredAnonymousAgent::fake([$this->respuestaIA()]);
+        AgenteEstructurado::fake([$this->respuestaIA()]);
         $clase = $this->claseDe3();
 
         Volt::actingAs($clase->user)->test('pages.fichas.nueva')
@@ -110,7 +110,7 @@ class FichasTest extends TestCase
     public function test_con_ilustracion_se_genera_la_imagen_con_openai(): void
     {
         Storage::fake('public');
-        StructuredAnonymousAgent::fake([$this->respuestaIA()]);
+        AgenteEstructurado::fake([$this->respuestaIA()]);
         Image::fake();
         $clase = $this->claseDe3();
 
@@ -128,7 +128,7 @@ class FichasTest extends TestCase
 
     public function test_si_falla_la_ilustracion_la_ficha_queda_lista_sin_imagen(): void
     {
-        StructuredAnonymousAgent::fake([$this->respuestaIA()]);
+        AgenteEstructurado::fake([$this->respuestaIA()]);
         Image::fake(fn () => throw new RuntimeException('Sin saldo'));
         $clase = $this->claseDe3();
 
@@ -146,7 +146,7 @@ class FichasTest extends TestCase
 
     public function test_con_prompt_no_se_llama_a_openai_y_se_guarda_el_prompt(): void
     {
-        StructuredAnonymousAgent::fake([$this->respuestaIA()]);
+        AgenteEstructurado::fake([$this->respuestaIA()]);
         Image::fake();
         $clase = $this->claseDe3();
 
@@ -171,7 +171,7 @@ class FichasTest extends TestCase
 
     public function test_sin_ilustracion_no_hay_prompt(): void
     {
-        StructuredAnonymousAgent::fake([$this->respuestaIA()]);
+        AgenteEstructurado::fake([$this->respuestaIA()]);
         $clase = $this->claseDe3();
 
         Volt::actingAs($clase->user)->test('pages.fichas.nueva')
@@ -224,7 +224,7 @@ class FichasTest extends TestCase
 
     public function test_si_falla_el_texto_la_ficha_queda_en_error(): void
     {
-        StructuredAnonymousAgent::fake(fn () => throw new RuntimeException('Proveedor caído'));
+        AgenteEstructurado::fake(fn () => throw new RuntimeException('Proveedor caído'));
         $clase = $this->claseDe3();
 
         Volt::actingAs($clase->user)->test('pages.fichas.nueva')
@@ -329,7 +329,7 @@ class FichasTest extends TestCase
 
     public function test_si_la_ia_no_propone_ilustracion_el_prompt_ilustra_el_titulo(): void
     {
-        StructuredAnonymousAgent::fake([array_merge($this->respuestaIA(), ['ilustracion' => ''])]);
+        AgenteEstructurado::fake([array_merge($this->respuestaIA(), ['ilustracion' => ''])]);
         $clase = $this->claseDe3();
 
         Volt::actingAs($clase->user)->test('pages.fichas.nueva')
@@ -343,7 +343,7 @@ class FichasTest extends TestCase
     public function test_al_regenerar_con_openai_se_borra_la_imagen_anterior(): void
     {
         Storage::fake('public');
-        StructuredAnonymousAgent::fake([$this->respuestaIA()]);
+        AgenteEstructurado::fake([$this->respuestaIA()]);
         Image::fake();
         Storage::disk('public')->put('imagenes/vieja.png', 'imagen');
         $ficha = Ficha::factory()->create([
@@ -362,7 +362,7 @@ class FichasTest extends TestCase
     public function test_si_falla_la_ilustracion_al_regenerar_se_ofrece_el_prompt_y_se_conserva_la_imagen(): void
     {
         Storage::fake('public');
-        StructuredAnonymousAgent::fake([$this->respuestaIA()]);
+        AgenteEstructurado::fake([$this->respuestaIA()]);
         Image::fake(fn () => throw new RuntimeException('Sin saldo'));
         Storage::disk('public')->put('imagenes/vieja.png', 'imagen');
         $ficha = Ficha::factory()->create([
@@ -393,7 +393,7 @@ class FichasTest extends TestCase
 
     public function test_una_tarea_que_no_existe_no_se_guarda_en_la_ficha(): void
     {
-        StructuredAnonymousAgent::fake([$this->respuestaIA()]);
+        AgenteEstructurado::fake([$this->respuestaIA()]);
         $clase = $this->claseDe3();
         $proyecto = Proyecto::factory()->for($clase)->create([
             'user_id' => $clase->user_id,

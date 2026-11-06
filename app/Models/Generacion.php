@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'user_id', 'tarea', 'estado', 'proveedor', 'modelo', 'respaldo',
-    'tokens_entrada', 'tokens_salida', 'tokens_cache', 'duracion_ms', 'ids_descartados', 'error',
+    'tokens_entrada', 'tokens_salida', 'tokens_cache', 'tokens_cache_escritos', 'duracion_ms', 'ids_descartados', 'error',
 ])]
 class Generacion extends Model
 {

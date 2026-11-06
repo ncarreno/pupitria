@@ -36,13 +36,17 @@ class GeneradorFicha
             ? data_get($ficha->proyecto->contenido, "tareas.{$ficha->tarea_indice}")
             : null;
 
-        $peticion = view('prompts.ficha', [
+        // Los criterios van en las instrucciones para que Anthropic los cachee (ver AgenteEstructurado).
+        $instrucciones = view('prompts.ficha-instrucciones', [
             'area' => $area->codigo,
-            'nombreArea' => $area->nombre,
             'ciclo' => $ciclo,
-            'curso' => $ficha->curso,
             'criterios' => Criterio::where('area_id', $area->id)->where('ciclo', $ciclo)->orderBy('id')->get()
                 ->map(fn (Criterio $c) => "{$c->id}: {$c->texto}")->implode("\n"),
+        ])->render();
+
+        $peticion = view('prompts.ficha', [
+            'nombreArea' => $area->nombre,
+            'curso' => $ficha->curso,
             'proyecto' => $ficha->proyecto?->titulo,
             'tarea' => $tarea ? "{$tarea['titulo']}: {$tarea['descripcion']}" : null,
             'tema' => $ficha->tema,
@@ -50,7 +54,7 @@ class GeneradorFicha
 
         $resultado = $this->ia->generarEstructurado(
             tarea: $soloEsta ? 'bateria' : 'ficha',
-            instrucciones: view('prompts.ficha-instrucciones')->render(),
+            instrucciones: $instrucciones,
             peticion: $peticion,
             esquema: fn (JsonSchema $schema) => $this->esquema($schema),
             usuario: $ficha->user,

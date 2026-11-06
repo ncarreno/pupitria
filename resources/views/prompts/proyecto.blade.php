@@ -1,9 +1,3 @@
-CURRÍCULO DISPONIBLE ({!! $ciclo !!}.º ciclo de Primaria, Decreto 57/2022 de Asturias):
-
-{!! $curriculo !!}
-
----
-
 CONTEXTO DE LA CLASE
 Tutora de {!! $curso !!}.º de Primaria ({!! $ciclo !!}.º ciclo) con {!! $alumnos !!} alumnos{!! $diversidad !!}.
 Áreas del proyecto: {!! $areas !!}.

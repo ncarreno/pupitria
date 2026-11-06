@@ -5,11 +5,11 @@ namespace Tests\Feature;
 use App\Models\Generacion;
 use App\Models\IaConfiguracion;
 use App\Models\User;
+use App\Services\IA\AgenteEstructurado;
 use App\Services\IA\ClienteIA;
 use Database\Seeders\IaConfiguracionSeeder;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Ai\StructuredAnonymousAgent;
 use Livewire\Volt\Volt;
 use Tests\TestCase;
 
@@ -47,7 +47,7 @@ class AdminIATest extends TestCase
 
     public function test_anadir_y_subir_un_proveedor_lo_convierte_en_el_principal(): void
     {
-        StructuredAnonymousAgent::fake([['titulo' => 'Ríos de Asturias']]);
+        AgenteEstructurado::fake([['titulo' => 'Ríos de Asturias']]);
 
         $panel = Volt::actingAs(User::factory()->admin()->create())->test('pages.admin.ia')
             ->set('nuevo.prueba', 'openai')
@@ -114,7 +114,7 @@ class AdminIATest extends TestCase
             ->call('guardar', $fila->id)
             ->assertHasNoErrors();
 
-        StructuredAnonymousAgent::fake([['titulo' => 'Ríos de Asturias']]);
+        AgenteEstructurado::fake([['titulo' => 'Ríos de Asturias']]);
         $r = app(ClienteIA::class)->generarEstructurado('prueba', 'x', 'y', fn (JsonSchema $s) => ['titulo' => $s->string()->required()]);
         $this->assertSame('claude-haiku-5-5', $r['generacion']->modelo);
     }
@@ -148,7 +148,7 @@ class AdminIATest extends TestCase
 
     public function test_probar_usa_solo_el_proveedor_de_la_fila(): void
     {
-        StructuredAnonymousAgent::fake(fn ($prompt, $adjuntos, $proveedor) => ['titulo' => 'Responde '.$proveedor->name()]);
+        AgenteEstructurado::fake(fn ($prompt, $adjuntos, $proveedor) => ['titulo' => 'Responde '.$proveedor->name()]);
         $admin = User::factory()->admin()->create();
         $respaldo = IaConfiguracion::create(['tarea' => 'ficha', 'proveedor' => 'openai', 'orden' => 2, 'timeout' => 180, 'activo' => true]);
 

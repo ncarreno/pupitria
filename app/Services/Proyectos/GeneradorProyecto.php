@@ -34,8 +34,13 @@ class GeneradorProyecto
             ? " ({$clase->alumnos_refuerzo} necesitan refuerzo y {$clase->alumnos_ampliacion} ampliación)"
             : '';
 
-        $peticion = view('prompts.proyecto', [
+        // El currículo va en las instrucciones para que Anthropic lo cachee (ver AgenteEstructurado).
+        $instrucciones = view('prompts.proyecto-instrucciones', [
             'curriculo' => $this->catalogo->paraPrompt($proyecto->areas, $ciclo),
+            'ciclo' => $ciclo,
+        ])->render();
+
+        $peticion = view('prompts.proyecto', [
             'ciclo' => $ciclo,
             'curso' => $proyecto->curso,
             'alumnos' => $clase?->alumnos ?? 20,
@@ -51,7 +56,7 @@ class GeneradorProyecto
 
         $resultado = $this->ia->generarEstructurado(
             tarea: $soloEsta ? 'bateria' : ($ajuste ? 'ajuste' : 'proyecto'),
-            instrucciones: view('prompts.proyecto-instrucciones')->render(),
+            instrucciones: $instrucciones,
             peticion: $peticion,
             esquema: fn (JsonSchema $schema) => $this->esquema($schema),
             usuario: $proyecto->user,
